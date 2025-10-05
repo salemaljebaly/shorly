@@ -56,6 +56,9 @@ jobs:
       - name: Build shared packages
         run: pnpm --filter @shorly/types build && pnpm --filter @shorly/config build && pnpm --filter @shorly/utils build
 
+      - name: Generate Prisma Client
+        run: pnpm --filter @shorly/api prisma:generate
+
       - name: Type check
         run: pnpm type-check
 
@@ -108,7 +111,7 @@ jobs:
         run: pnpm --filter @shorly/api prisma:generate
 
       - name: Setup test database
-        run: pnpm --filter @shorly/api prisma:deploy
+        run: pnpm --filter @shorly/api exec prisma db push --accept-data-loss
         env:
           DATABASE_URL: postgresql://shorly:shorly_password@localhost:5432/shorly_test
 
@@ -135,6 +138,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @shorly/api prisma:generate
 
       - name: Build all packages and apps
         run: pnpm build
