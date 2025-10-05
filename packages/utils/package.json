@@ -17,7 +17,7 @@
     "ua-parser-js": "^1.0.39"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^24.6.2",
     "@types/ua-parser-js": "^0.7.39",
     "typescript": "^5.7.2"
   }
