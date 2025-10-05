@@ -489,10 +489,24 @@ describe('OneLinksService', () => {
         fallbackUrl: 'https://fallback.example.com',
       };
 
-      const iosUserAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)';
+      const iosUserAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1';
       const url = service.resolveUrl(oneLink, iosUserAgent);
 
       expect(url).toBe('https://test.example.com');
+    });
+
+    it('should fallback to web when Android device has no specific target', () => {
+      const oneLink = {
+        targets: [
+          { deviceType: DeviceType.WEB, url: 'https://test.example.com/web' },
+        ],
+        fallbackUrl: 'https://fallback.example.com',
+      };
+
+      const androidUserAgent = 'Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36';
+      const url = service.resolveUrl(oneLink, androidUserAgent);
+
+      expect(url).toBe('https://test.example.com/web');
     });
 
     it('should use fallback when no matching target found', () => {
@@ -506,6 +520,37 @@ describe('OneLinksService', () => {
       const androidUserAgent = 'Mozilla/5.0 (Linux; Android 10)';
       const url = service.resolveUrl(oneLink, androidUserAgent);
 
+      expect(url).toBe('https://fallback.example.com');
+    });
+
+    it('should use fallback when mobile device has no web fallback', () => {
+      const oneLink = {
+        targets: [
+          { deviceType: DeviceType.IOS, url: 'https://apps.apple.com/test' },
+        ],
+        fallbackUrl: 'https://fallback.example.com',
+      };
+
+      const androidUserAgent = 'Mozilla/5.0 (Linux; Android 10)';
+      const url = service.resolveUrl(oneLink, androidUserAgent);
+
+      // Android user agent should fallback since no web target exists
+      expect(url).toBe('https://fallback.example.com');
+    });
+
+    it('should use fallback when web user has no web target', () => {
+      const oneLink = {
+        targets: [
+          { deviceType: DeviceType.IOS, url: 'https://apps.apple.com/test' },
+          { deviceType: DeviceType.ANDROID, url: 'https://play.google.com/test' },
+        ],
+        fallbackUrl: 'https://fallback.example.com',
+      };
+
+      const desktopUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+      const url = service.resolveUrl(oneLink, desktopUserAgent);
+
+      // Desktop user should get fallback since no web target exists
       expect(url).toBe('https://fallback.example.com');
     });
   });

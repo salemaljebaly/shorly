@@ -20,19 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
+      - name: Build shared packages
+        run: pnpm --filter @shorly/types build && pnpm --filter @shorly/config build && pnpm --filter @shorly/utils build
+
       - name: Run lint
         run: pnpm lint
 
@@ -41,60 +42,105 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
+      - name: Build shared packages
+        run: pnpm --filter @shorly/types build && pnpm --filter @shorly/config build && pnpm --filter @shorly/utils build
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @shorly/api prisma:generate
+
       - name: Type check
         run: pnpm type-check
 
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: shorly
+          POSTGRES_PASSWORD: shorly_password
+          POSTGRES_DB: shorly_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
+      - name: Build shared packages
+        run: pnpm --filter @shorly/types build && pnpm --filter @shorly/config build && pnpm --filter @shorly/utils build
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @shorly/api prisma:generate
+
+      - name: Setup test database
+        run: pnpm --filter @shorly/api exec prisma db push --accept-data-loss
+        env:
+          DATABASE_URL: postgresql://shorly:shorly_password@localhost:5432/shorly_test
+
       - name: Run unit tests with coverage
         run: pnpm --filter @shorly/api test:cov
+        env:
+          DATABASE_URL: postgresql://shorly:shorly_password@localhost:5432/shorly_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret-key-for-ci
+          JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci
 
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @shorly/api prisma:generate
+
       - name: Build all packages and apps
         run: pnpm build

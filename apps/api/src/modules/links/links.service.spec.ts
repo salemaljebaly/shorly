@@ -386,6 +386,20 @@ describe('LinksService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('should throw BadRequestException for localhost URL update', async () => {
+      const userId = await createTestUser();
+      const created = await service.create(userId, {
+        shortCode: `test-localhost-${Date.now()}`,
+        destinationUrl: 'https://test.example.com/valid',
+      });
+
+      await expect(
+        service.update(userId, created.id, {
+          destinationUrl: 'https://localhost:3000/admin',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('should update link without changing destinationUrl', async () => {
       const userId = await createTestUser();
       const created = await service.create(userId, {
@@ -401,6 +415,23 @@ describe('LinksService', () => {
 
       expect(updated.title).toBe('Updated');
       expect(updated.destinationUrl).toBe(created.destinationUrl);
+    });
+
+    it('should update link with valid and safe destinationUrl', async () => {
+      const userId = await createTestUser();
+      const created = await service.create(userId, {
+        shortCode: `test-valid-safe-${Date.now()}`,
+        destinationUrl: 'https://test.example.com/original',
+        title: 'Original',
+      });
+
+      const updated = await service.update(userId, created.id, {
+        destinationUrl: 'https://example.com/updated',
+        title: 'Updated',
+      });
+
+      expect(updated.destinationUrl).toBe('https://example.com/updated');
+      expect(updated.title).toBe('Updated');
     });
 
     it('should use default REDIS_TTL when env var not set', async () => {
