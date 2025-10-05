@@ -29,7 +29,7 @@ export default [
     },
   },
   {
-    files: ['**/*.spec.ts', '**/*.test.ts', '**/test/**/*.ts'],
+    files: ['**/*.spec.ts', '**/*.test.ts', '**/test/**/*.ts', '**/test/**/*.js'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -40,6 +40,37 @@ export default [
         ...globals.node,
         ...globals.es2021,
         ...globals.jest,
+        fail: 'readonly',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+    },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-console': 'off',
+      'no-undef': 'off',
+    },
+  },
+  {
+    files: ['apps/web/**/*.ts', 'apps/web/**/*.tsx'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2021,
+        React: 'readonly',
       },
     },
     plugins: {
@@ -49,7 +80,8 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      'no-console': 'off',
+      'no-console': 'warn',
+      'no-undef': 'off',
     },
   },
   {
