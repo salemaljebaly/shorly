@@ -27,7 +27,7 @@
     "@nestjs/config": "^3.3.0",
     "@nestjs/swagger": "^8.0.7",
     "@nestjs/jwt": "^10.2.0",
-    "@nestjs/passport": "^10.0.3",
+    "@nestjs/passport": "^11.0.5",
     "@nestjs/throttler": "^6.2.1",
     "@prisma/client": "^6.1.0",
     "@shorly/types": "workspace:*",
