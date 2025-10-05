@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+build
+.next
+out
+coverage
+
+# Generated files
+*.tsbuildinfo
+.turbo
+
+# Prisma
+prisma/migrations
+
+# Env files
+.env*
+!.env.example
+
+# Logs
+*.log
+
+# OS files
+.DS_Store

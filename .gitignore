@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Turbo
+.turbo/
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Local env files
+apps/*/.env
+apps/*/.env*.local
+.env.production
+!apps/*/.env.example
+!apps/*/.env.test
+
+# Vercel
+.vercel
+
+# Cloudflare
+apps/worker/.wrangler/
+apps/worker/.dev.vars
+
+# Typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.db
+*.db-journal
+
+*.test.md

@@ -1,0 +1,62 @@
+# Auto-label pull requests based on changed files
+
+api:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/api/**"
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/web/**"
+
+worker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/worker/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/**/*.yml"
+
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.json"
+          - "*.js"
+          - "*.mjs"
+          - "*.ts"
+          - "*.yml"
+          - "*.yaml"
+          - "turbo.json"
+          - "tsconfig.json"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "README.md"
+          - "docs/**"
+          - "CONTRIBUTING.md"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.spec.ts"
+          - "**/*.test.ts"
+          - "**/*.e2e-spec.ts"
+          - "**/*integration-spec.ts"
+          - "apps/api/test/**"
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/api/prisma/**"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "pnpm-lock.yaml"
+          - "**/package.json"

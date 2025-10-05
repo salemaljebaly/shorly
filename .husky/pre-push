@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+printf "\033[36m› Running tests...\033[0m\n"
+pnpm --filter @shorly/api test
+
+printf "\033[36m› Running type check...\033[0m\n"
+pnpm type-check

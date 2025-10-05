@@ -1,0 +1,48 @@
+name: Auto-assign PRs
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  assign:
+    name: Assign PR to owner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const assignee = 'salemaljebaly';
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.info('No pull_request in payload; exiting.');
+              return;
+            }
+            if (pr.draft) {
+              core.info('PR is draft; skipping assignment.');
+              return;
+            }
+            // Check if already assigned
+            const { data: current } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+            });
+            const already = (current.assignees || []).some(a => a.login === assignee);
+            if (already) {
+              core.info('Already assigned to ' + assignee);
+              return;
+            }
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              assignees: [assignee],
+            });
+            core.info('Assigned PR #' + pr.number + ' to ' + assignee);

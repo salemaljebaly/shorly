@@ -1,0 +1,24 @@
+{
+  "name": "@shorly/utils",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shorly/types": "workspace:*",
+    "@shorly/config": "workspace:*",
+    "nanoid": "^3.3.7",
+    "ua-parser-js": "^1.0.39"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/ua-parser-js": "^0.7.39",
+    "typescript": "^5.7.2"
+  }
+}

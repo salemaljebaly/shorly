@@ -1,0 +1,45 @@
+- name: api
+  color: "0e8a16"
+  description: "Changes to the NestJS API backend"
+- name: frontend
+  color: "1d76db"
+  description: "Changes to the Next.js frontend"
+- name: worker
+  color: "fbca04"
+  description: "Changes to the Cloudflare Worker"
+- name: ci
+  color: "5319e7"
+  description: "Continuous integration and workflow updates"
+- name: config
+  color: "fbca04"
+  description: "Tooling or configuration changes"
+- name: docs
+  color: "0e8a16"
+  description: "Documentation updates"
+- name: tests
+  color: "d93f0b"
+  description: "Adds or updates automated tests"
+- name: dependencies
+  color: "0366d6"
+  description: "Dependency version updates"
+- name: pnpm
+  color: "f9d0c4"
+  description: "pnpm package manager updates"
+- name: bug
+  color: "d73a4a"
+  description: "Something is not working"
+- name: triage
+  color: "cfd3d7"
+  description: "Needs investigation or reproduction"
+- name: enhancement
+  color: "a2eeef"
+  description: "New feature or request"
+- name: security
+  color: "ee0701"
+  description: "Security-related issues or updates"
+- name: performance
+  color: "ff9800"
+  description: "Performance improvements"
+- name: database
+  color: "c5def5"
+  description: "Database schema or migration changes"

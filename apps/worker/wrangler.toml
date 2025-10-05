@@ -1,0 +1,24 @@
+name = "shorly-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-10"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+API_URL = "http://localhost:3001/api/v1"
+
+# KV Namespace for caching (optional, create in Cloudflare dashboard)
+# [[kv_namespaces]]
+# binding = "LINKS_CACHE"
+# id = "your-kv-namespace-id"
+
+# D1 Database (optional, for edge database)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "shorly"
+# database_id = "your-database-id"
+
+# Routes
+routes = [
+  { pattern = "short.yourdomain.com/*", zone_name = "yourdomain.com" }
+]

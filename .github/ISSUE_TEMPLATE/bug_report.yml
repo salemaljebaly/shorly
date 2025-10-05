@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a reproducible problem or regression in Shorly
+labels:
+  - bug
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Shorly! Please fill in as much detail as you can.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+      placeholder: Link redirect returns 404 error
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include code snippets, commands, API calls, and URLs if relevant.
+      placeholder: |
+        1. Create a short link via POST /api/v1/links
+        2. Try to access the short code via /{shortCode}
+        3. Observe 404 error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: I expected the link to redirect to the destination URL…
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which component?
+      options:
+        - API (Backend)
+        - Web (Frontend)
+        - Worker (Cloudflare)
+        - Database/Prisma
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Node 20.0.0 · pnpm 9.0.0 · PostgreSQL 16 · Self-hosted / Cloud
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant console output, API responses, or add a link to a gist.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checks
+      options:
+        - label: I have searched open issues for duplicates.
+          required: true
+        - label: I am willing to submit a PR with a fix.

@@ -1,0 +1,54 @@
+name: Feature request
+description: Suggest an idea to improve Shorly
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share the context for your feature so we can understand the problem it solves.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      placeholder: I'd like to add custom domains support because…
+      description: What challenge are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      placeholder: Add a new endpoint to configure custom domains…
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which component?
+      options:
+        - API (Backend)
+        - Web (Frontend)
+        - Worker (Cloudflare)
+        - Database/Prisma
+        - Documentation
+        - DevOps/Infrastructure
+        - Other
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: Other approaches or workarounds you have tried.
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      placeholder: Screenshots, mockups, API designs, or links that help illustrate the idea.
+  - type: checkboxes
+    id: agreement
+    attributes:
+      label: Checks
+      options:
+        - label: I have searched open issues for similar requests.
+          required: true
+        - label: I am willing to help implement this feature.

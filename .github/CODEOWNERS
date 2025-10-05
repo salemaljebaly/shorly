@@ -1,0 +1,24 @@
+# This is a CODEOWNERS file
+# Each line is a file pattern followed by one or more owners
+
+# Default owners for everything in the repo
+* @salemaljebaly
+
+# API specific
+/apps/api/ @salemaljebaly
+
+# Frontend specific
+/apps/web/ @salemaljebaly
+
+# Worker specific
+/apps/worker/ @salemaljebaly
+
+# Shared packages
+/packages/ @salemaljebaly
+
+# Documentation
+/docs/ @salemaljebaly
+*.md @salemaljebaly
+
+# CI/CD
+/.github/ @salemaljebaly
