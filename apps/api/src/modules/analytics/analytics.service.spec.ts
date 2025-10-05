@@ -312,6 +312,22 @@ describe('AnalyticsService', () => {
 
       expect(result.totalClicks).toBeGreaterThan(0);
     });
+
+    it('should filter OneLink analytics with only startDate', async () => {
+      const startDate = new Date(Date.now() - 86400000);
+
+      const result = await service.getOneLinkAnalytics(testOneLinkId, startDate);
+
+      expect(result).toHaveProperty('totalClicks');
+    });
+
+    it('should filter OneLink analytics with only endDate', async () => {
+      const endDate = new Date();
+
+      const result = await service.getOneLinkAnalytics(testOneLinkId, undefined, endDate);
+
+      expect(result).toHaveProperty('totalClicks');
+    });
   });
 
   describe('getLinkTimeSeries', () => {
@@ -376,6 +392,20 @@ describe('AnalyticsService', () => {
 
       expect(result.qrScans).toBe(1);
       expect(result.totalClicks).toBe(2);
+    });
+
+    it('should handle clicks with no device', async () => {
+      await prisma.clickEvent.create({
+        data: {
+          linkId: testLinkId,
+          country: 'US',
+        },
+      });
+
+      const result = await service.getLinkAnalytics(testLinkId);
+
+      expect(result).toHaveProperty('totalClicks');
+      expect(result.totalClicks).toBe(1);
     });
   });
 });

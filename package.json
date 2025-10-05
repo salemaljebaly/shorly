@@ -19,12 +19,12 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "@turbo/gen": "^2.3.3",
+    "@turbo/gen": "^2.5.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.3",
-    "prettier": "^3.4.2",
-    "turbo": "^2.3.3",
-    "typescript": "^5.7.2"
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.8",
+    "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {

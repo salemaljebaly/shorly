@@ -1,12 +1,26 @@
-import { customAlphabet } from 'nanoid';
 import { APP_CONSTANTS } from '@shorly/config';
 
 /**
  * Generate a random short code for links
  */
 export function generateShortCode(length: number = APP_CONSTANTS.SHORT_CODE_LENGTH): string {
-  const nanoid = customAlphabet(APP_CONSTANTS.SHORT_CODE_CHARSET, length);
-  return nanoid();
+  const charset = APP_CONSTANTS.SHORT_CODE_CHARSET;
+  let result = '';
+  const randomValues = new Uint8Array(length);
+
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(randomValues);
+  } else {
+    // Fallback for Node.js
+    const nodeCrypto = require('crypto');
+    nodeCrypto.randomFillSync(randomValues);
+  }
+
+  for (let i = 0; i < length; i++) {
+    result += charset[randomValues[i] % charset.length];
+  }
+
+  return result;
 }
 
 /**
