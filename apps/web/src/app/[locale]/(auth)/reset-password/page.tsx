@@ -55,7 +55,7 @@ function ResetPasswordContent() {
     },
   });
 
-  const onSubmit = async (data: ResetPasswordFormValues) => {
+  const onSubmit = async (_data: ResetPasswordFormValues) => {
     if (!token) {
       toast.error('Invalid reset token');
       return;

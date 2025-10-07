@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { analyticsApi, linksApi, type Link, type AnalyticsData } from '@/lib/api';
 import { Card } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import {
 import { Calendar, Users, MousePointerClick, Globe, Smartphone, BarChart2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function AnalyticsPage() {
+function AnalyticsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const linkParam = searchParams.get('link');
@@ -27,30 +27,7 @@ export default function AnalyticsPage() {
   const [loadingLinks, setLoadingLinks] = useState(true);
   const [dateRange, setDateRange] = useState('7');
 
-  useEffect(() => {
-    fetchLinks();
-  }, []);
-
-  useEffect(() => {
-    if (linkParam) {
-      fetchData();
-    }
-  }, [linkParam, dateRange]);
-
-  const fetchLinks = async () => {
-    try {
-      setLoadingLinks(true);
-      const data = await linksApi.getAll();
-      setLinks(data);
-    } catch (error) {
-      toast.error('Failed to load links');
-      console.error(error);
-    } finally {
-      setLoadingLinks(false);
-    }
-  };
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!linkParam) return;
 
     try {
@@ -77,7 +54,31 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
+  }, [linkParam, dateRange]);
+
+  const fetchLinks = async () => {
+    try {
+      setLoadingLinks(true);
+      const data = await linksApi.getAll();
+      setLinks(data);
+    } catch (error) {
+      toast.error('Failed to load links');
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      setLoadingLinks(false);
+    }
   };
+
+  useEffect(() => {
+    fetchLinks();
+  }, []);
+
+  useEffect(() => {
+    if (linkParam) {
+      fetchData();
+    }
+  }, [linkParam, dateRange, fetchData]);
 
   if (!linkParam) {
     return (
@@ -324,3 +325,13 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
+function AnalyticsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center p-8"><div className="text-muted-foreground">Loading...</div></div>}>
+      <AnalyticsPage />
+    </Suspense>
+  );
+}
+
+export default AnalyticsPageWrapper;

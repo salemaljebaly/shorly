@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { qrApi, linksApi, type Link } from '@/lib/api';
 import { Card } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import {
 import { Download, QrCode as QrCodeIcon, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function QRCodePage() {
+function QRCodePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const linkParam = searchParams.get('link');
@@ -35,13 +35,15 @@ export default function QRCodePage() {
   const [lightColor, setLightColor] = useState('ffffff');
   const [errorLevel, setErrorLevel] = useState<'L' | 'M' | 'Q' | 'H'>('M');
 
-  useEffect(() => {
-    fetchLinks();
-  }, []);
+  const fetchLink = useCallback(async () => {
+    if (!linkParam) return;
 
-  useEffect(() => {
-    if (linkParam) {
-      fetchLink();
+    try {
+      const linkData = await linksApi.getByShortCode(linkParam);
+      setLink(linkData);
+    } catch (error) {
+      toast.error('Failed to load link');
+      console.error(error);
     }
   }, [linkParam]);
 
@@ -58,17 +60,15 @@ export default function QRCodePage() {
     }
   };
 
-  const fetchLink = async () => {
-    if (!linkParam) return;
+  useEffect(() => {
+    fetchLinks();
+  }, []);
 
-    try {
-      const linkData = await linksApi.getByShortCode(linkParam);
-      setLink(linkData);
-    } catch (error) {
-      toast.error('Failed to load link');
-      console.error(error);
+  useEffect(() => {
+    if (linkParam) {
+      fetchLink();
     }
-  };
+  }, [linkParam, fetchLink]);
 
   const generateQR = async () => {
     if (!link) return;
@@ -279,6 +279,7 @@ export default function QRCodePage() {
           <div className="flex flex-col items-center justify-center min-h-[400px]">
             {qrBlob ? (
               <>
+                {/* eslint-disable @next/next/no-img-element */}
                 <img
                   src={qrBlob}
                   alt="QR Code"
@@ -293,7 +294,7 @@ export default function QRCodePage() {
             ) : (
               <div className="text-center text-muted-foreground">
                 <QrCodeIcon className="mx-auto h-16 w-16 mb-4" />
-                <p>Click "Generate QR Code" to preview</p>
+                <p>Click &quot;Generate QR Code&quot; to preview</p>
               </div>
             )}
           </div>
@@ -302,3 +303,13 @@ export default function QRCodePage() {
     </div>
   );
 }
+
+function QRPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center p-8"><div className="text-muted-foreground">Loading...</div></div>}>
+      <QRCodePage />
+    </Suspense>
+  );
+}
+
+export default QRPageWrapper;

@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
     },
   });
 
-  const onSubmit = async (data: ForgotPasswordFormValues) => {
+  const onSubmit = async (_data: ForgotPasswordFormValues) => {
     setIsLoading(true);
     try {
       // TODO: Integrate with API

@@ -82,7 +82,7 @@ export function LinksTable({ links, onUpdate }: LinksTableProps) {
       setDeleteDialogOpen(false);
       setSelectedLink(null);
       onUpdate?.();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete link');
     }
   };
@@ -97,7 +97,7 @@ export function LinksTable({ links, onUpdate }: LinksTableProps) {
       await linksApi.update(link.id, { isActive: !link.isActive });
       toast.success(link.isActive ? 'Link deactivated' : 'Link activated');
       onUpdate?.();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update link status');
     }
   };
