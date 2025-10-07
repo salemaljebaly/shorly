@@ -15,6 +15,7 @@ import {
 import { Calendar, Users, MousePointerClick, Globe, Smartphone, BarChart2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+
 function AnalyticsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -44,8 +45,36 @@ function AnalyticsPage() {
         endDate: endDate.toISOString(),
       });
 
-      // Use the analytics data directly from backend
-      const transformedData = rawData;
+      // Ensure analytics data has the expected array structure
+      const transformedData: AnalyticsData = {
+        totalClicks: rawData.totalClicks || 0,
+        uniqueVisitors: rawData.uniqueVisitors || 0,
+        clicksByDate: Array.isArray(rawData.clicksByDate)
+          ? rawData.clicksByDate.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          : Object.entries(rawData.clicksByDate || {})
+              .map(([date, clicks]) => ({ date, clicks: Number(clicks) }))
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+        clicksByCountry: Array.isArray(rawData.clicksByCountry)
+          ? rawData.clicksByCountry.sort((a, b) => b.clicks - a.clicks)
+          : Object.entries(rawData.clicksByCountry || {})
+              .map(([country, clicks]) => ({ country, clicks: Number(clicks) }))
+              .sort((a, b) => b.clicks - a.clicks),
+        clicksByDevice: Array.isArray(rawData.clicksByDevice)
+          ? rawData.clicksByDevice.sort((a, b) => b.clicks - a.clicks)
+          : Object.entries((rawData as any).byDevice || {})
+              .map(([device, clicks]) => ({ device, clicks: Number(clicks) }))
+              .sort((a, b) => b.clicks - a.clicks),
+        clicksByBrowser: Array.isArray(rawData.clicksByBrowser)
+          ? rawData.clicksByBrowser.sort((a, b) => b.clicks - a.clicks)
+          : Object.entries((rawData as any).byBrowser || {})
+              .map(([browser, clicks]) => ({ browser, clicks: Number(clicks) }))
+              .sort((a, b) => b.clicks - a.clicks),
+        clicksByReferrer: Array.isArray(rawData.clicksByReferrer)
+          ? rawData.clicksByReferrer.sort((a, b) => b.clicks - a.clicks)
+          : Object.entries((rawData as any).byReferer || {})
+              .map(([referrer, clicks]) => ({ referrer, clicks: Number(clicks) }))
+              .sort((a, b) => b.clicks - a.clicks),
+      };
 
       setAnalytics(transformedData);
     } catch (error) {
