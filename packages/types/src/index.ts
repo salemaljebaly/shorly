@@ -21,6 +21,7 @@ export interface CreateLinkDto {
   title?: string;
   description?: string;
   tags?: string[];
+  isActive?: boolean;
   expiresAt?: Date;
 }
 
@@ -99,6 +100,16 @@ export interface AnalyticsSummary {
   clicksByBrowser: Record<string, number>;
   clicksByReferer: Record<string, number>;
   clicksByDate: Record<string, number>;
+}
+
+export interface AnalyticsData {
+  totalClicks: number;
+  uniqueClicks: number;
+  clicksByDate: Record<string, number>;
+  byCountry: Record<string, number>;
+  byDevice: Record<string, number>;
+  byBrowser: Record<string, number>;
+  byReferer: Record<string, number>;
 }
 
 export interface AnalyticsQuery {

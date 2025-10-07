@@ -1,7 +1,20 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+  Inject,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
-import { generateShortCode, isValidShortCode, sanitizeShortCode, isReservedShortCode, isValidUrl, isSafeUrl } from '@shorly/utils';
+import {
+  generateShortCode,
+  isValidShortCode,
+  sanitizeShortCode,
+  isReservedShortCode,
+  isValidUrl,
+  isSafeUrl,
+} from '@shorly/utils';
 import { APP_CONSTANTS } from '@shorly/config';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { UpdateLinkDto } from './dto/update-link.dto';
@@ -50,6 +63,7 @@ export class LinksService {
         title: dto.title,
         description: dto.description,
         tags: dto.tags || [],
+        isActive: dto.isActive ?? true, // Default to true if not provided
         expiresAt: dto.expiresAt,
         userId,
       },
@@ -75,12 +89,24 @@ export class LinksService {
         skip,
         take: pageSize,
         orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: { clicks: true },
+          },
+        },
       }),
       this.prisma.link.count({ where }),
     ]);
 
+    // Transform to include clicks count
+    const linksWithClicks = links.map((link) => ({
+      ...link,
+      clicks: link._count.clicks,
+      _count: undefined,
+    }));
+
     return {
-      data: links,
+      data: linksWithClicks,
       total,
       page,
       pageSize,
@@ -91,29 +117,54 @@ export class LinksService {
   async findOne(userId: string, id: string) {
     const link = await this.prisma.link.findFirst({
       where: { id, userId },
+      include: {
+        _count: {
+          select: { clicks: true },
+        },
+      },
     });
 
     if (!link) {
       throw new NotFoundException('Link not found');
     }
 
-    return link;
+    return {
+      ...link,
+      clicks: link._count.clicks,
+      _count: undefined,
+    };
   }
 
   async findByShortCode(shortCode: string) {
     // Try cache first
     const cached = await this.redis.get(`link:${shortCode}`);
     if (cached) {
-      return JSON.parse(cached);
+      const parsedLink = JSON.parse(cached);
+      // Get fresh click count
+      const clickCount = await this.prisma.clickEvent.count({
+        where: { linkId: parsedLink.id },
+      });
+      return { ...parsedLink, clicks: clickCount };
     }
 
     // Fetch from database
     const link = await this.prisma.link.findUnique({
       where: { shortCode },
+      include: {
+        _count: {
+          select: { clicks: true },
+        },
+      },
     });
 
     if (link) {
-      await this.cacheLink(link);
+      const linkWithClicks = {
+        ...link,
+        clicks: link._count.clicks,
+        _count: undefined,
+      };
+      await this.cacheLink(linkWithClicks);
+      return linkWithClicks;
     }
 
     return link;
