@@ -7,23 +7,17 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
-import {
-  generateShortCode,
-  isValidShortCode,
-  sanitizeShortCode,
-  isReservedShortCode,
-  isValidUrl,
-  isSafeUrl,
-} from '@shorly/utils';
-import { APP_CONSTANTS } from '@shorly/config';
+import { isValidUrl, isSafeUrl } from '@shorly/utils';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { UpdateLinkDto } from './dto/update-link.dto';
+import { ShortCodeService } from '../shared/short-code.service';
 
 @Injectable()
 export class LinksService {
   constructor(
     private prisma: PrismaClient,
-    @Inject('REDIS_CLIENT') private redis: Redis
+    @Inject('REDIS_CLIENT') private redis: Redis,
+    private shortCodeService: ShortCodeService
   ) {}
 
   async create(userId: string, dto: CreateLinkDto) {
@@ -34,26 +28,21 @@ export class LinksService {
 
     // Handle short code
     let shortCode: string;
-    if (dto.shortCode) {
-      // Validate original input first
-      if (!isValidShortCode(dto.shortCode)) {
-        throw new BadRequestException('Invalid short code format');
+    try {
+      const validatedCode = this.shortCodeService.validateAndSanitizeShortCode(dto.shortCode);
+      if (validatedCode) {
+        shortCode = validatedCode;
+        // Check if already exists
+        const existing = await this.shortCodeService.findByShortCode(shortCode);
+        if (existing) {
+          throw new ConflictException('Short code already exists');
+        }
+      } else {
+        // Generate unique short code
+        shortCode = await this.shortCodeService.generateUniqueShortCode();
       }
-
-      shortCode = sanitizeShortCode(dto.shortCode);
-
-      if (isReservedShortCode(shortCode)) {
-        throw new BadRequestException('Short code is reserved');
-      }
-
-      // Check if already exists
-      const existing = await this.findByShortCode(shortCode);
-      if (existing) {
-        throw new ConflictException('Short code already exists');
-      }
-    } else {
-      // Generate unique short code
-      shortCode = await this.generateUniqueShortCode();
+    } catch (error) {
+      throw new BadRequestException(error.message);
     }
 
     const link = await this.prisma.link.create({
@@ -70,7 +59,7 @@ export class LinksService {
     });
 
     // Cache the link
-    await this.cacheLink(link);
+    await this.shortCodeService.cacheLink(link);
 
     return link;
   }
@@ -163,7 +152,7 @@ export class LinksService {
         clicks: link._count.clicks,
         _count: undefined,
       };
-      await this.cacheLink(linkWithClicks);
+      await this.shortCodeService.cacheLink(linkWithClicks);
       return linkWithClicks;
     }
 
@@ -185,7 +174,7 @@ export class LinksService {
     });
 
     // Update cache
-    await this.cacheLink(link);
+    await this.shortCodeService.cacheLink(link);
 
     return link;
   }
@@ -198,25 +187,8 @@ export class LinksService {
     });
 
     // Remove from cache
-    await this.redis.del(`link:${link.shortCode}`);
+    await this.shortCodeService.removeCachedLink(link.shortCode);
 
     return { message: 'Link deleted successfully' };
-  }
-
-  private async generateUniqueShortCode(): Promise<string> {
-    for (let i = 0; i < APP_CONSTANTS.MAX_SHORT_CODE_ATTEMPTS; i++) {
-      const code = generateShortCode();
-      const existing = await this.findByShortCode(code);
-      if (!existing) {
-        return code;
-      }
-    }
-
-    throw new Error('Failed to generate unique short code');
-  }
-
-  private async cacheLink(link: any): Promise<void> {
-    const ttl = parseInt(process.env.REDIS_TTL || '3600');
-    await this.redis.setex(`link:${link.shortCode}`, ttl, JSON.stringify(link));
   }
 }

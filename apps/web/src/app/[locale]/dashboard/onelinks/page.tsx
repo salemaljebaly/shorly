@@ -1,16 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Search, Filter } from 'lucide-react';
 import { oneLinksApi, type OneLink } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { OneLinksTable } from '@/components/onelinks/onelinks-table';
+import { CreateOneLinkDialog } from '@/components/onelinks/create-onelink-dialog';
 import { toast } from 'sonner';
 
 export default function OneLinksPage() {
   const [oneLinks, setOneLinks] = useState<OneLink[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchOneLinks();
@@ -28,6 +39,21 @@ export default function OneLinksPage() {
       setLoading(false);
     }
   };
+
+  const filteredOneLinks = oneLinks.filter((oneLink) => {
+    const matchesSearch =
+      oneLink.shortCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      oneLink.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      oneLink.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      oneLink.fallbackUrl.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'active' && oneLink.isActive) ||
+      (statusFilter === 'inactive' && !oneLink.isActive);
+
+    return matchesSearch && matchesStatus;
+  });
 
   if (loading) {
     return (
@@ -47,89 +73,47 @@ export default function OneLinksPage() {
             Smart links that route users based on their device
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Create OneLink
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-4">
-          <div className="text-sm font-medium text-muted-foreground">Total OneLinks</div>
-          <div className="mt-2 text-2xl font-bold">{oneLinks.length}</div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-sm font-medium text-muted-foreground">Active OneLinks</div>
-          <div className="mt-2 text-2xl font-bold">{oneLinks.filter((l) => l.isActive).length}</div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-sm font-medium text-muted-foreground">Total Clicks</div>
-          <div className="mt-2 text-2xl font-bold">
-            {oneLinks.reduce((sum, l) => sum + l.clicks, 0).toLocaleString()}
-          </div>
-        </Card>
+      {/* Filters */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by short code, title, description, or fallback URL..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All OneLinks</SelectItem>
+              <SelectItem value="active">Active Only</SelectItem>
+              <SelectItem value="inactive">Inactive Only</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* OneLinks List */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {oneLinks.map((oneLink) => (
-          <Card key={oneLink.id} className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="font-semibold text-lg">/{oneLink.shortCode}</h3>
-                {oneLink.title && <p className="text-sm text-muted-foreground">{oneLink.title}</p>}
-              </div>
-              <Badge variant={oneLink.isActive ? 'default' : 'secondary'}>
-                {oneLink.isActive ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
+      {/* OneLinks Table */}
+      <OneLinksTable oneLinks={filteredOneLinks} onUpdate={fetchOneLinks} />
 
-            <div className="space-y-2 text-sm">
-              {oneLink.targets.android && (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-muted-foreground">Android:</span>
-                  <span className="truncate">{oneLink.targets.android}</span>
-                </div>
-              )}
-              {oneLink.targets.ios && (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-muted-foreground">iOS:</span>
-                  <span className="truncate">{oneLink.targets.ios}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-muted-foreground">Web:</span>
-                <span className="truncate">{oneLink.targets.web}</span>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {oneLink.clicks.toLocaleString()} clicks
-              </span>
-              <Button variant="outline" size="sm">
-                Edit
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {oneLinks.length === 0 && (
-        <Card className="p-12">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold">No OneLinks yet</h3>
-            <p className="text-muted-foreground mt-2">
-              Create your first OneLink to route users based on their device
-            </p>
-            <Button className="mt-4">
-              <Plus className="mr-2 h-4 w-4" />
-              Create OneLink
-            </Button>
-          </div>
-        </Card>
-      )}
+      {/* Create OneLink Dialog */}
+      <CreateOneLinkDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSuccess={fetchOneLinks}
+      />
     </div>
   );
 }

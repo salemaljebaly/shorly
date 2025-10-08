@@ -52,11 +52,13 @@ export const authApi = {
     return response.data;
   },
 
-  forgotPassword: async (data: ForgotPasswordRequest): Promise<void> => {
-    await apiClient.post('/auth/forgot-password', data);
+  forgotPassword: async (data: ForgotPasswordRequest): Promise<any> => {
+    const response = await apiClient.post('/users/forgot-password', data);
+    return response.data;
   },
 
-  resetPassword: async (data: ResetPasswordRequest): Promise<void> => {
-    await apiClient.post('/auth/reset-password', data);
+  resetPassword: async (data: ResetPasswordRequest): Promise<any> => {
+    const response = await apiClient.post('/users/reset-password', data);
+    return response.data;
   },
 };

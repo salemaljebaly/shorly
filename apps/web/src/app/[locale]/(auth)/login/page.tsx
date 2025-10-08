@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { authApi } from '@/lib/api';
+import { useLocalePath } from '@/lib/locale-routing';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
@@ -37,6 +38,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { buildPath } = useLocalePath();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -54,7 +56,7 @@ export default function LoginPage() {
       localStorage.setItem('access_token', response.accessToken);
       localStorage.setItem('refresh_token', response.refreshToken);
       toast.success('Login successful!');
-      router.push('/dashboard');
+      router.push(buildPath('/dashboard'));
     } catch (error) {
       toast.error((error as any)?.response?.data?.message || 'Login failed');
     } finally {
@@ -99,7 +101,7 @@ export default function LoginPage() {
                     <div className="flex items-center justify-between">
                       <FormLabel>Password</FormLabel>
                       <Link
-                        href="/forgot-password"
+                        href={buildPath('/forgot-password')}
                         className="text-xs text-primary hover:underline"
                       >
                         Forgot password?
@@ -121,7 +123,7 @@ export default function LoginPage() {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-primary hover:underline">
+            <Link href={buildPath('/register')} className="text-primary hover:underline">
               Sign up
             </Link>
           </div>

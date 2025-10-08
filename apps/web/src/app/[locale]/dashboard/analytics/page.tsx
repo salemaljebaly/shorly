@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { analyticsApi, linksApi, type Link, type AnalyticsData } from '@/lib/api';
+import { useLocalePath } from '@/lib/locale-routing';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,13 +23,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, Users, MousePointerClick, Globe, Smartphone, BarChart2, Search, Filter, Copy, ExternalLink } from 'lucide-react';
+import {
+  Calendar,
+  Users,
+  MousePointerClick,
+  Globe,
+  Smartphone,
+  BarChart2,
+  Search,
+  Filter,
+  Copy,
+  ExternalLink,
+} from 'lucide-react';
 import { toast } from 'sonner';
-
 
 function AnalyticsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { buildPath } = useLocalePath();
   const linkParam = searchParams.get('link');
 
   const copyToClipboard = (shortCode: string) => {
@@ -82,7 +94,9 @@ function AnalyticsPage() {
         totalClicks: rawData.totalClicks || 0,
         uniqueVisitors: rawData.uniqueVisitors || 0,
         clicksByDate: Array.isArray(rawData.clicksByDate)
-          ? rawData.clicksByDate.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          ? rawData.clicksByDate.sort(
+              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            )
           : Object.entries(rawData.clicksByDate || {})
               .map(([date, clicks]) => ({ date, clicks: Number(clicks) }))
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -199,7 +213,7 @@ function AnalyticsPage() {
               <BarChart2 className="mx-auto h-12 w-12 text-muted-foreground" />
               <h2 className="mt-4 text-2xl font-bold">No Links Found</h2>
               <p className="text-muted-foreground mt-2">Create a link first to view analytics</p>
-              <Button className="mt-4" onClick={() => router.push('/dashboard/links')}>
+              <Button className="mt-4" onClick={() => router.push(buildPath('/dashboard/links'))}>
                 Go to Links
               </Button>
             </div>
@@ -290,7 +304,9 @@ function AnalyticsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push(`/dashboard/analytics?link=${l.shortCode}`)}
+                          onClick={() =>
+                            router.push(`${buildPath('/dashboard/analytics')}?link=${l.shortCode}`)
+                          }
                         >
                           <BarChart2 className="mr-2 h-4 w-4" />
                           View Analytics
@@ -501,7 +517,13 @@ function AnalyticsPage() {
 
 function AnalyticsPageWrapper() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center p-8"><div className="text-muted-foreground">Loading...</div></div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center p-8">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      }
+    >
       <AnalyticsPage />
     </Suspense>
   );

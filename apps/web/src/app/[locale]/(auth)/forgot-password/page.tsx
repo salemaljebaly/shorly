@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { authApi } from '@/lib/api/auth';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -44,14 +45,10 @@ export default function ForgotPasswordPage() {
     },
   });
 
-  const onSubmit = async (_data: ForgotPasswordFormValues) => {
+  const onSubmit = async (data: ForgotPasswordFormValues) => {
     setIsLoading(true);
     try {
-      // TODO: Integrate with API
-      // await authApi.forgotPassword(data);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await authApi.forgotPassword(data);
 
       setEmailSent(true);
       toast.success('Password reset email sent!');

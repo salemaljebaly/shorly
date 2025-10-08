@@ -1,34 +1,42 @@
 import { apiClient } from './client';
 
+export enum DeviceType {
+  ANDROID = 'android',
+  IOS = 'ios',
+  WEB = 'web',
+}
+
 export interface OneLinkTarget {
-  android?: string;
-  ios?: string;
-  web: string;
+  deviceType: DeviceType;
+  url: string;
+  priority?: number;
 }
 
 export interface CreateOneLinkRequest {
   shortCode?: string;
   title?: string;
-  targets: OneLinkTarget;
-  isActive?: boolean;
-  expiresAt?: string;
+  description?: string;
+  targets: OneLinkTarget[];
+  fallbackUrl: string;
 }
 
 export interface UpdateOneLinkRequest {
   title?: string;
-  targets?: OneLinkTarget;
+  description?: string;
+  targets?: OneLinkTarget[];
+  fallbackUrl?: string;
   isActive?: boolean;
-  expiresAt?: string;
 }
 
 export interface OneLink {
   id: string;
   shortCode: string;
   title?: string;
-  targets: OneLinkTarget;
+  description?: string;
+  targets: OneLinkTarget[];
+  fallbackUrl: string;
   clicks: number;
   isActive: boolean;
-  expiresAt?: string;
   createdAt: string;
   updatedAt: string;
   userId: string;

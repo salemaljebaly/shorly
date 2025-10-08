@@ -1,24 +1,24 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+  Inject,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
-import {
-  generateShortCode,
-  isValidShortCode,
-  sanitizeShortCode,
-  isReservedShortCode,
-  detectDeviceType,
-  isBot,
-} from '@shorly/utils';
-import { APP_CONSTANTS } from '@shorly/config';
+import { detectDeviceType, isBot } from '@shorly/utils';
 import { DeviceType } from '@shorly/types';
 import { CreateOneLinkDto } from './dto/create-onelink.dto';
 import { UpdateOneLinkDto } from './dto/update-onelink.dto';
+import { ShortCodeService } from '../shared/short-code.service';
 
 @Injectable()
 export class OneLinksService {
   constructor(
     private prisma: PrismaClient,
-    @Inject('REDIS_CLIENT') private redis: Redis
+    @Inject('REDIS_CLIENT') private redis: Redis,
+    private shortCodeService: ShortCodeService
   ) {}
 
   async create(userId: string, dto: CreateOneLinkDto) {
@@ -29,25 +29,20 @@ export class OneLinksService {
 
     // Handle short code
     let shortCode: string;
-    if (dto.shortCode) {
-      // Validate original input first
-      if (!isValidShortCode(dto.shortCode)) {
-        throw new BadRequestException('Invalid short code format');
+    try {
+      const validatedCode = this.shortCodeService.validateAndSanitizeShortCode(dto.shortCode);
+      if (validatedCode) {
+        shortCode = validatedCode;
+        // Check if already exists
+        const existing = await this.shortCodeService.findByShortCode(shortCode);
+        if (existing) {
+          throw new ConflictException('Short code already exists');
+        }
+      } else {
+        shortCode = await this.shortCodeService.generateUniqueShortCode();
       }
-
-      shortCode = sanitizeShortCode(dto.shortCode);
-
-      if (isReservedShortCode(shortCode)) {
-        throw new BadRequestException('Short code is reserved');
-      }
-
-      // Check if already exists
-      const existing = await this.findByShortCode(shortCode);
-      if (existing) {
-        throw new ConflictException('Short code already exists');
-      }
-    } else {
-      shortCode = await this.generateUniqueShortCode();
+    } catch (error) {
+      throw new BadRequestException(error.message);
     }
 
     const oneLink = await this.prisma.oneLink.create({
@@ -62,7 +57,7 @@ export class OneLinksService {
     });
 
     // Cache the onelink
-    await this.cacheOneLink(oneLink);
+    await this.shortCodeService.cacheOneLink(oneLink);
 
     return oneLink;
   }
@@ -114,7 +109,7 @@ export class OneLinksService {
     });
 
     if (oneLink) {
-      await this.cacheOneLink(oneLink);
+      await this.shortCodeService.cacheOneLink(oneLink);
     }
 
     return oneLink;
@@ -138,7 +133,7 @@ export class OneLinksService {
     });
 
     // Update cache
-    await this.cacheOneLink(oneLink);
+    await this.shortCodeService.cacheOneLink(oneLink);
 
     return oneLink;
   }
@@ -185,22 +180,5 @@ export class OneLinksService {
     }
 
     return oneLink.fallbackUrl;
-  }
-
-  private async generateUniqueShortCode(): Promise<string> {
-    for (let i = 0; i < APP_CONSTANTS.MAX_SHORT_CODE_ATTEMPTS; i++) {
-      const code = generateShortCode();
-      const existing = await this.findByShortCode(code);
-      if (!existing) {
-        return code;
-      }
-    }
-
-    throw new Error('Failed to generate unique short code');
-  }
-
-  private async cacheOneLink(oneLink: any): Promise<void> {
-    const ttl = parseInt(process.env.REDIS_TTL || '3600');
-    await this.redis.setex(`onelink:${oneLink.shortCode}`, ttl, JSON.stringify(oneLink));
   }
 }

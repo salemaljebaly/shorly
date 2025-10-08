@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { authApi } from '@/lib/api/auth';
 
 const resetPasswordSchema = z
   .object({
@@ -55,7 +56,7 @@ function ResetPasswordContent() {
     },
   });
 
-  const onSubmit = async (_data: ResetPasswordFormValues) => {
+  const onSubmit = async (data: ResetPasswordFormValues) => {
     if (!token) {
       toast.error('Invalid reset token');
       return;
@@ -63,11 +64,7 @@ function ResetPasswordContent() {
 
     setIsLoading(true);
     try {
-      // TODO: Integrate with API
-      // await authApi.resetPassword({ token, password: data.password });
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await authApi.resetPassword({ token, password: data.password });
 
       setResetSuccess(true);
       toast.success('Password reset successfully!');

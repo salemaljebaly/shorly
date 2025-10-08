@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { authApi } from '@/lib/api';
+import { useLocalePath } from '@/lib/locale-routing';
 import { toast } from 'sonner';
 
 const registerSchema = z
@@ -44,6 +45,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { buildPath } = useLocalePath();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<RegisterFormValues>({
@@ -67,7 +69,7 @@ export default function RegisterPage() {
       localStorage.setItem('access_token', response.accessToken);
       localStorage.setItem('refresh_token', response.refreshToken);
       toast.success('Account created successfully!');
-      router.push('/dashboard');
+      router.push(buildPath('/dashboard'));
     } catch (error) {
       toast.error((error as any)?.response?.data?.message || 'Registration failed');
     } finally {
@@ -152,7 +154,7 @@ export default function RegisterPage() {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
             Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">
+            <Link href={buildPath('/login')} className="text-primary hover:underline">
               Sign in
             </Link>
           </div>

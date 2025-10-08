@@ -42,6 +42,7 @@ import {
 import { toast } from 'sonner';
 import { EditLinkDialog } from './edit-link-dialog';
 import { linksApi, type Link } from '@/lib/api';
+import { buildLocalePath } from '@/lib/locale-routing';
 
 interface LinksTableProps {
   links: Link[];
@@ -103,11 +104,17 @@ export function LinksTable({ links, onUpdate }: LinksTableProps) {
   };
 
   const handleViewAnalytics = (link: Link) => {
-    window.location.href = `/dashboard/analytics?link=${link.shortCode}`;
+    // Extract locale from current URL and build localized path
+    const currentLocale =
+      typeof window !== 'undefined' ? window.location.pathname.split('/')[1] || 'en' : 'en';
+    window.location.href = `${buildLocalePath('/dashboard/analytics', currentLocale)}?link=${link.shortCode}`;
   };
 
   const handleGenerateQR = (link: Link) => {
-    window.location.href = `/dashboard/qr?link=${link.shortCode}`;
+    // Extract locale from current URL and build localized path
+    const currentLocale =
+      typeof window !== 'undefined' ? window.location.pathname.split('/')[1] || 'en' : 'en';
+    window.location.href = `${buildLocalePath('/dashboard/qr', currentLocale)}?link=${link.shortCode}`;
   };
 
   const isExpired = (expiresAt?: string | null) => {

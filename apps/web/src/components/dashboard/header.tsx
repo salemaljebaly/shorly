@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useLocalePath } from '@/lib/locale-routing';
 
 interface HeaderProps {
   user?: {
@@ -22,10 +23,12 @@ interface HeaderProps {
 }
 
 export function Header({ user }: HeaderProps) {
+  const { buildPath } = useLocalePath();
+
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
-    window.location.href = '/login';
+    window.location.href = buildPath('/login');
   };
 
   const initials = user?.name
@@ -72,10 +75,10 @@ export function Header({ user }: HeaderProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings">Settings</Link>
+              <Link href={buildPath('/dashboard/settings')}>Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/dashboard/profile">Profile</Link>
+              <Link href={buildPath('/dashboard/profile')}>Profile</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

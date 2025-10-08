@@ -7,18 +7,23 @@ import { StatsCard } from '@/components/dashboard/stats-card';
 import { QuickCreateLink } from '@/components/dashboard/quick-create-link';
 import { RecentLinksTable } from '@/components/dashboard/recent-links-table';
 import { Button } from '@/components/ui/button';
-import { linksApi, type Link } from '@/lib/api';
+import { linksApi, oneLinksApi, type Link, type OneLink } from '@/lib/api';
+import { useLocalePath } from '@/lib/locale-routing';
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { buildPath } = useLocalePath();
   const [links, setLinks] = useState<Link[]>([]);
+  const [oneLinks, setOneLinks] = useState<OneLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalLinks: 0,
     totalClicks: 0,
     activeLinks: 0,
     clickRate: 0,
+    totalOneLinks: 0,
+    totalOneLinkClicks: 0,
   });
 
   useEffect(() => {
@@ -28,19 +33,33 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await linksApi.getAll();
-      setLinks(data);
+      const [linksData, oneLinksData] = await Promise.all([
+        linksApi.getAll(),
+        oneLinksApi.getAll(),
+      ]);
 
-      // Calculate stats
-      const totalClicks = data.reduce((sum, link) => sum + (link.clicks || 0), 0);
-      const activeLinks = data.filter((link) => link.isActive).length;
-      const clickRate = data.length > 0 ? (totalClicks / data.length).toFixed(1) : 0;
+      setLinks(linksData);
+      setOneLinks(oneLinksData);
+
+      // Calculate stats for links
+      const totalLinkClicks = linksData.reduce((sum, link) => sum + (link.clicks || 0), 0);
+      const activeLinks = linksData.filter((link) => link.isActive).length;
+      const linkClickRate =
+        linksData.length > 0 ? (totalLinkClicks / linksData.length).toFixed(1) : 0;
+
+      // Calculate stats for OneLinks
+      const totalOneLinkClicks = oneLinksData.reduce(
+        (sum, oneLink) => sum + (oneLink.clicks || 0),
+        0
+      );
 
       setStats({
-        totalLinks: data.length,
-        totalClicks,
+        totalLinks: linksData.length,
+        totalClicks: totalLinkClicks,
         activeLinks,
-        clickRate: Number(clickRate),
+        clickRate: Number(linkClickRate),
+        totalOneLinks: oneLinksData.length,
+        totalOneLinkClicks,
       });
     } catch (error) {
       toast.error('Failed to load dashboard data');
@@ -70,7 +89,7 @@ export default function DashboardPage() {
             Welcome back! Here&apos;s an overview of your links.
           </p>
         </div>
-        <Button onClick={() => router.push('/dashboard/links')}>
+        <Button onClick={() => router.push(buildPath('/dashboard/links'))}>
           <Link2 className="mr-2 h-4 w-4" />
           Create Link
         </Button>
@@ -81,13 +100,13 @@ export default function DashboardPage() {
         <StatsCard
           title="Total Links"
           value={loading ? '...' : stats.totalLinks}
-          description="All time"
+          description={`${stats.totalOneLinks} OneLinks`}
           icon={Link2}
         />
         <StatsCard
           title="Total Clicks"
-          value={loading ? '...' : stats.totalClicks.toLocaleString()}
-          description="All time"
+          value={loading ? '...' : (stats.totalClicks + stats.totalOneLinkClicks).toLocaleString()}
+          description={`${stats.totalOneLinkClicks} from OneLinks`}
           icon={MousePointerClick}
         />
         <StatsCard
@@ -116,7 +135,11 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Recent Links</h2>
-              <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/links')}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(buildPath('/dashboard/links'))}
+              >
                 View All
               </Button>
             </div>

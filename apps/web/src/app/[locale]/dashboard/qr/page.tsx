@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { qrApi, linksApi, type Link } from '@/lib/api';
+import { useLocalePath } from '@/lib/locale-routing';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,12 +24,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Download, QrCode as QrCodeIcon, Palette, Search, Filter, Copy, ExternalLink } from 'lucide-react';
+import {
+  Download,
+  QrCode as QrCodeIcon,
+  Palette,
+  Search,
+  Filter,
+  Copy,
+  ExternalLink,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 function QRCodePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { buildPath } = useLocalePath();
   const linkParam = searchParams.get('link');
 
   const copyToClipboard = (shortCode: string) => {
@@ -195,7 +205,7 @@ function QRCodePage() {
               <QrCodeIcon className="mx-auto h-12 w-12 text-muted-foreground" />
               <h2 className="mt-4 text-2xl font-bold">No Links Found</h2>
               <p className="text-muted-foreground mt-2">Create a link first to generate QR codes</p>
-              <Button className="mt-4" onClick={() => router.push('/dashboard/links')}>
+              <Button className="mt-4" onClick={() => router.push(buildPath('/dashboard/links'))}>
                 Go to Links
               </Button>
             </div>
@@ -286,7 +296,9 @@ function QRCodePage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push(`/dashboard/qr?link=${l.shortCode}`)}
+                          onClick={() =>
+                            router.push(`${buildPath('/dashboard/qr')}?link=${l.shortCode}`)
+                          }
                         >
                           <QrCodeIcon className="mr-2 h-4 w-4" />
                           Generate QR
@@ -426,7 +438,6 @@ function QRCodePage() {
           <div className="flex flex-col items-center justify-center min-h-[400px]">
             {qrBlob ? (
               <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={qrBlob}
                   alt="QR Code"
@@ -453,7 +464,13 @@ function QRCodePage() {
 
 function QRPageWrapper() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center p-8"><div className="text-muted-foreground">Loading...</div></div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center p-8">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      }
+    >
       <QRCodePage />
     </Suspense>
   );
