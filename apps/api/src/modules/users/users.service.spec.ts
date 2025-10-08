@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaClient } from '@prisma/client';
+import { NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 jest.mock('bcrypt');
 const mockedBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
@@ -9,6 +12,7 @@ const mockedBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 describe('UsersService', () => {
   let service: UsersService;
   let prisma: PrismaClient;
+  let redisMock: any;
 
   beforeAll(async () => {
     prisma = new PrismaClient({
@@ -19,6 +23,13 @@ describe('UsersService', () => {
       },
     });
 
+    // Mock Redis client
+    redisMock = {
+      get: jest.fn(),
+      setex: jest.fn(),
+      del: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
@@ -28,11 +39,7 @@ describe('UsersService', () => {
         },
         {
           provide: 'REDIS_CLIENT',
-          useValue: {
-            get: jest.fn(),
-            setex: jest.fn(),
-            del: jest.fn(),
-          },
+          useValue: redisMock,
         },
       ],
     }).compile();
@@ -45,6 +52,9 @@ describe('UsersService', () => {
     await prisma.user.deleteMany({
       where: { email: { contains: 'test' } },
     });
+
+    // Reset Redis mock before each test
+    jest.clearAllMocks();
   });
 
   afterEach(async () => {
@@ -213,13 +223,17 @@ describe('UsersService', () => {
         newPassword: 'newpassword123',
       };
 
-      (mockedBcrypt.compare as jest.Mock).mockResolvedValue(true);
+      // Mock compare to return true for current password check, false for same password check
+      (mockedBcrypt.compare as jest.Mock)
+        .mockResolvedValueOnce(true) // Current password check
+        .mockResolvedValueOnce(false); // Same password check
       (mockedBcrypt.hash as jest.Mock).mockResolvedValue('$2b$10$newhashedpassword');
 
       const result = await service.changePassword(user.id, changePasswordDto);
 
       expect(result).toEqual({ message: 'Password changed successfully' });
       expect(mockedBcrypt.compare).toHaveBeenCalledWith('oldpassword', user.password);
+      expect(mockedBcrypt.compare).toHaveBeenCalledWith('newpassword123', user.password);
       expect(mockedBcrypt.hash).toHaveBeenCalledWith('newpassword123', 10);
     });
 
@@ -302,13 +316,124 @@ describe('UsersService', () => {
 
       (mockedBcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.deleteAccount(user.id, password)).rejects.toThrow('Invalid password');
+      await expect(service.deleteAccount(user.id, password)).rejects.toThrow(
+        'Password is incorrect'
+      );
 
       // Verify user is not deleted
       const existingUser = await prisma.user.findUnique({
         where: { id: user.id },
       });
       expect(existingUser).toBeDefined();
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should return success message for existing user', async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: 'test-forgot@example.com',
+          password: '$2b$10$hashedpassword',
+        },
+      });
+
+      const result = await service.forgotPassword({ email: 'test-forgot@example.com' });
+
+      expect(result).toHaveProperty('message');
+      expect(result.message).toBe(
+        'If an account with that email exists, a password reset link has been sent'
+      );
+      expect(redisMock.setex).toHaveBeenCalled();
+    });
+
+    it('should return success message for non-existing user (prevent enumeration)', async () => {
+      const result = await service.forgotPassword({ email: 'nonexistent@example.com' });
+
+      expect(result).toHaveProperty('message');
+      expect(result.message).toBe(
+        'If an account with that email exists, a password reset link has been sent'
+      );
+      expect(redisMock.setex).not.toHaveBeenCalled();
+    });
+
+    it('should include reset token in development mode', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+
+      const user = await prisma.user.create({
+        data: {
+          email: 'test-dev@example.com',
+          password: '$2b$10$hashedpassword',
+        },
+      });
+
+      const result = await service.forgotPassword({ email: 'test-dev@example.com' });
+
+      expect(result).toHaveProperty('message');
+      expect(result).toHaveProperty('resetToken');
+      expect(typeof result.resetToken).toBe('string');
+
+      // Restore original environment
+      process.env.NODE_ENV = originalEnv;
+    });
+  });
+
+  describe('resetPassword', () => {
+    let user: any;
+    let resetToken: string;
+
+    beforeEach(async () => {
+      user = await prisma.user.create({
+        data: {
+          email: 'test-reset@example.com',
+          password: '$2b$10$hashedpassword',
+        },
+      });
+
+      resetToken = 'test-reset-token';
+      // Configure the mock to return the user ID when the reset token is requested
+      redisMock.get.mockResolvedValue(user.id);
+    });
+
+    it('should reset password successfully with valid token', async () => {
+      const resetPasswordDto = {
+        token: resetToken,
+        newPassword: 'newSecurePassword123',
+      };
+
+      (mockedBcrypt.hash as jest.Mock).mockResolvedValue('$2b$10$newhashedpassword');
+
+      const result = await service.resetPassword(resetPasswordDto);
+
+      expect(result).toEqual({ message: 'Password reset successfully' });
+      expect(mockedBcrypt.hash).toHaveBeenCalledWith('newSecurePassword123', 10);
+      expect(redisMock.del).toHaveBeenCalledWith(`reset_token:${resetToken}`);
+      expect(redisMock.del).toHaveBeenCalledWith(`refresh_token:${user.id}`);
+    });
+
+    it('should throw BadRequestException for invalid token', async () => {
+      redisMock.get.mockResolvedValueOnce(null);
+
+      const resetPasswordDto = {
+        token: 'invalid-token',
+        newPassword: 'newSecurePassword123',
+      };
+
+      await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow(
+        'Invalid or expired reset token'
+      );
+    });
+
+    it('should throw NotFoundException for non-existent user', async () => {
+      const userId = 'non-existent-user-id';
+      redisMock.get.mockResolvedValueOnce(userId);
+
+      const resetPasswordDto = {
+        token: resetToken,
+        newPassword: 'newSecurePassword123',
+      };
+
+      await expect(service.resetPassword(resetPasswordDto)).rejects.toThrow('User not found');
     });
   });
 });

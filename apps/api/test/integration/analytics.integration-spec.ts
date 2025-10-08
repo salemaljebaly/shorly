@@ -1,17 +1,20 @@
 import { AnalyticsService } from '../../src/modules/analytics/analytics.service';
 import { LinksService } from '../../src/modules/links/links.service';
+import { ShortCodeService } from '../../src/modules/shared/short-code.service';
 import { IntegrationTestContext, setupIntegrationTest } from './test-helpers';
 
 describe('AnalyticsService Integration Tests', () => {
   let context: IntegrationTestContext;
   let analyticsService: AnalyticsService;
   let linksService: LinksService;
+  let shortCodeService: ShortCodeService;
   let userId: string;
 
   beforeAll(async () => {
     context = await setupIntegrationTest();
     analyticsService = new AnalyticsService(context.prisma);
-    linksService = new LinksService(context.prisma, context.redis);
+    shortCodeService = new ShortCodeService(context.prisma, context.redis);
+    linksService = new LinksService(context.prisma, context.redis, shortCodeService);
   });
 
   beforeEach(async () => {
@@ -83,7 +86,7 @@ describe('AnalyticsService Integration Tests', () => {
           linkId: link.id,
           userAgent: 'Mozilla/5.0',
           headers: { 'x-forwarded-for': `192.168.1.${i}` },
-        }),
+        })
       );
 
       await Promise.all(promises);

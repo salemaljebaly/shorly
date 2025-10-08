@@ -1,14 +1,17 @@
 import { LinksService } from '../../src/modules/links/links.service';
+import { ShortCodeService } from '../../src/modules/shared/short-code.service';
 import { IntegrationTestContext, setupIntegrationTest } from './test-helpers';
 
 describe('LinksService Integration Tests', () => {
   let context: IntegrationTestContext;
   let service: LinksService;
+  let shortCodeService: ShortCodeService;
   let userId: string;
 
   beforeAll(async () => {
     context = await setupIntegrationTest();
-    service = new LinksService(context.prisma, context.redis);
+    shortCodeService = new ShortCodeService(context.prisma, context.redis);
+    service = new LinksService(context.prisma, context.redis, shortCodeService);
   });
 
   beforeEach(async () => {
@@ -158,7 +161,7 @@ describe('LinksService Integration Tests', () => {
         service.create(userId, {
           shortCode,
           destinationUrl: 'https://example.com/second',
-        }),
+        })
       ).rejects.toThrow();
     });
 
@@ -194,7 +197,7 @@ describe('LinksService Integration Tests', () => {
       const promises = Array.from({ length: 10 }, (_, i) =>
         service.create(userId, {
           destinationUrl: `https://example.com/concurrent-${i}`,
-        }),
+        })
       );
 
       const results = await Promise.all(promises);
@@ -223,9 +226,7 @@ describe('LinksService Integration Tests', () => {
       });
 
       // Make 20 concurrent reads
-      const promises = Array.from({ length: 20 }, () =>
-        service.findByShortCode(shortCode),
-      );
+      const promises = Array.from({ length: 20 }, () => service.findByShortCode(shortCode));
 
       const results = await Promise.all(promises);
 

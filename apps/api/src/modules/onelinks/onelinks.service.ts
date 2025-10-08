@@ -42,6 +42,9 @@ export class OneLinksService {
         shortCode = await this.shortCodeService.generateUniqueShortCode();
       }
     } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
       throw new BadRequestException(error.message);
     }
 

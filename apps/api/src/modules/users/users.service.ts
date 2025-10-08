@@ -123,6 +123,13 @@ export class UsersService {
       throw new BadRequestException('Current password is incorrect');
     }
 
+    // Check if new password is same as current password
+    const isSamePassword = await bcrypt.compare(changePasswordDto.newPassword, user.password);
+
+    if (isSamePassword) {
+      throw new BadRequestException('New password must be different from current password');
+    }
+
     const hashedNewPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
 
     await this.prisma.user.update({
