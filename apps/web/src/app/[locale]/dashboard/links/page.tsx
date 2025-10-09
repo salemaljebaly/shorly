@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
-import { linksApi, type Link } from '@/lib/api';
+import { linksApi, type Link, type PaginatedLinks } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,27 +17,50 @@ import { CreateLinkDialog } from '@/components/links/create-link-dialog';
 import { toast } from 'sonner';
 
 export default function LinksPage() {
-  const [links, setLinks] = useState<Link[]>([]);
+  const [linksResult, setLinksResult] = useState<PaginatedLinks | null>(null);
+  const links: Link[] = linksResult?.data ?? [];
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const fetchLinks = useCallback(
+    async (options?: { page?: number; pageSize?: number }) => {
+      const nextPage = options?.page ?? page;
+      const nextPageSize = options?.pageSize ?? pageSize;
+
+      try {
+        setLoading(true);
+        const result = await linksApi.getAll({ page: nextPage, pageSize: nextPageSize });
+        setLinksResult(result);
+        setPage(result.page);
+        setPageSize(result.pageSize);
+      } catch (error) {
+        toast.error('Failed to load links');
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, pageSize]
+  );
 
   useEffect(() => {
     fetchLinks();
-  }, []);
+  }, [fetchLinks]);
 
-  const fetchLinks = async () => {
-    try {
-      setLoading(true);
-      const data = await linksApi.getAll();
-      setLinks(data);
-    } catch (error) {
-      toast.error('Failed to load links');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+  const handlePageChange = (nextPage: number) => {
+    fetchLinks({ page: nextPage });
+  };
+
+  const handlePageSizeChange = (nextSize: number) => {
+    fetchLinks({ page: 1, pageSize: nextSize });
+  };
+
+  const refreshLinks = () => {
+    fetchLinks();
   };
 
   const filteredLinks = links.filter((link) => {
@@ -53,6 +76,15 @@ export default function LinksPage() {
 
     return matchesSearch && matchesStatus;
   });
+
+  const pagination = linksResult
+    ? {
+        page: linksResult.page,
+        pageSize: linksResult.pageSize,
+        total: linksResult.total,
+        hasNext: linksResult.hasNext,
+      }
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -98,7 +130,7 @@ export default function LinksPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border bg-card p-4">
           <div className="text-sm font-medium text-muted-foreground">Total Links</div>
-          <div className="mt-2 text-2xl font-bold">{links.length}</div>
+          <div className="mt-2 text-2xl font-bold">{linksResult?.total ?? 0}</div>
         </div>
         <div className="rounded-lg border bg-card p-4">
           <div className="text-sm font-medium text-muted-foreground">Active Links</div>
@@ -118,7 +150,13 @@ export default function LinksPage() {
           <div className="text-muted-foreground">Loading links...</div>
         </div>
       ) : (
-        <LinksTable links={filteredLinks} onUpdate={fetchLinks} />
+        <LinksTable
+          links={filteredLinks}
+          onUpdate={refreshLinks}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
       )}
 
       {/* Create Link Dialog */}

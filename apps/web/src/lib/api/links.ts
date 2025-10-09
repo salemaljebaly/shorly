@@ -28,8 +28,20 @@ export interface Link {
   userId: string;
 }
 
+export interface PaginatedLinks {
+  data: Link[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+}
+
 export const linksApi = {
-  getAll: async (params?: { page?: number; pageSize?: number; tag?: string }): Promise<Link[]> => {
+  getAll: async (params?: {
+    page?: number;
+    pageSize?: number;
+    tag?: string;
+  }): Promise<PaginatedLinks> => {
     const response = await apiClient.get('/links', { params });
     return response.data;
   },

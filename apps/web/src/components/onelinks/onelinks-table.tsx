@@ -14,6 +14,8 @@ import {
   Smartphone,
   Tablet,
   Monitor,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,17 +49,48 @@ import { CreateOneLinkDialog } from './create-onelink-dialog';
 import { EditOneLinkDialog } from './edit-onelink-dialog';
 import { oneLinksApi, DeviceType, type OneLink } from '@/lib/api';
 import { buildLocalePath } from '@/lib/locale-routing';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface OneLinksTableProps {
   oneLinks: OneLink[];
   onUpdate?: () => void;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    hasNext: boolean;
+  };
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
-export function OneLinksTable({ oneLinks, onUpdate }: OneLinksTableProps) {
+export function OneLinksTable({
+  oneLinks,
+  onUpdate,
+  pagination,
+  onPageChange,
+  onPageSizeChange,
+}: OneLinksTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOneLink, setSelectedOneLink] = useState<OneLink | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  const currentPage = pagination?.page ?? 1;
+  const currentPageSize = pagination?.pageSize ?? (oneLinks.length || 1);
+  const totalItems = pagination?.total ?? oneLinks.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / currentPageSize));
+  const hasNext = pagination?.hasNext ?? currentPage < totalPages;
+  const displayedCount = oneLinks.length;
+  const hasDisplayedItems = displayedCount > 0;
+  const startItem = hasDisplayedItems ? (currentPage - 1) * currentPageSize + 1 : 0;
+  const endItem = hasDisplayedItems ? startItem + displayedCount - 1 : 0;
 
   const copyToClipboard = (shortCode: string) => {
     if (typeof window === 'undefined') return;
@@ -158,22 +191,6 @@ export function OneLinksTable({ oneLinks, onUpdate }: OneLinksTableProps) {
     );
   };
 
-  if (oneLinks.length === 0) {
-    return (
-      <div className="rounded-md border">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No OneLinks found</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Create your first OneLink to get started
-          </p>
-          <Button className="mt-4" onClick={() => setCreateDialogOpen(true)}>
-            Create OneLink
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="rounded-md border">
@@ -192,104 +209,175 @@ export function OneLinksTable({ oneLinks, onUpdate }: OneLinksTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {oneLinks.map((oneLink) => (
-                <TableRow key={oneLink.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <span className="text-primary">/{oneLink.shortCode}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => copyToClipboard(oneLink.shortCode)}
-                      >
-                        <Copy className="h-3 w-3" />
+              {oneLinks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8}>
+                    <div className="py-12 text-center">
+                      <p className="text-muted-foreground">No OneLinks found</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Create your first OneLink to get started
+                      </p>
+                      <Button className="mt-4" onClick={() => setCreateDialogOpen(true)}>
+                        Create OneLink
                       </Button>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div>
-                      {oneLink.title && <div className="font-medium">{oneLink.title}</div>}
-                      {oneLink.description && (
-                        <div className="text-xs text-muted-foreground max-w-xs truncate">
-                          {oneLink.description}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">{getTargetDisplay(oneLink)}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="max-w-xs truncate" title={oneLink.fallbackUrl}>
-                      {oneLink.fallbackUrl}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <BarChart2 className="h-3 w-3 text-muted-foreground" />
-                      <span>{(oneLink.clicks ?? 0).toLocaleString()}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={oneLink.isActive ? 'default' : 'secondary'}>
-                      {oneLink.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(oneLink.createdAt)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => window.open(`/${oneLink.shortCode}`, '_blank')}
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Visit Link
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleViewAnalytics(oneLink)}>
-                          <BarChart2 className="mr-2 h-4 w-4" />
-                          View Analytics
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleGenerateQR(oneLink)}>
-                          <QrCode className="mr-2 h-4 w-4" />
-                          Generate QR
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleEdit(oneLink)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleStatus(oneLink)}>
-                          {oneLink.isActive ? (
-                            <ToggleLeft className="mr-2 h-4 w-4" />
-                          ) : (
-                            <ToggleRight className="mr-2 h-4 w-4" />
-                          )}
-                          {oneLink.isActive ? 'Deactivate' : 'Activate'}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(oneLink)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                oneLinks.map((oneLink) => (
+                  <TableRow key={oneLink.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="text-primary">/{oneLink.shortCode}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => copyToClipboard(oneLink.shortCode)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        {oneLink.title && <div className="font-medium">{oneLink.title}</div>}
+                        {oneLink.description && (
+                          <div className="max-w-xs truncate text-xs text-muted-foreground">
+                            {oneLink.description}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">{getTargetDisplay(oneLink)}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-xs truncate" title={oneLink.fallbackUrl}>
+                        {oneLink.fallbackUrl}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <BarChart2 className="h-3 w-3 text-muted-foreground" />
+                        <span>{(oneLink.clicks ?? 0).toLocaleString()}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={oneLink.isActive ? 'default' : 'secondary'}>
+                        {oneLink.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(oneLink.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => window.open(`/${oneLink.shortCode}`, '_blank')}
+                          >
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Visit Link
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewAnalytics(oneLink)}>
+                            <BarChart2 className="mr-2 h-4 w-4" />
+                            View Analytics
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleGenerateQR(oneLink)}>
+                            <QrCode className="mr-2 h-4 w-4" />
+                            Generate QR
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleEdit(oneLink)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleStatus(oneLink)}>
+                            {oneLink.isActive ? (
+                              <ToggleLeft className="mr-2 h-4 w-4" />
+                            ) : (
+                              <ToggleRight className="mr-2 h-4 w-4" />
+                            )}
+                            {oneLink.isActive ? 'Deactivate' : 'Activate'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDelete(oneLink)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
+        {pagination && (
+          <div className="flex flex-col gap-4 border-t px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+            <div>
+              {totalItems === 0
+                ? 'No OneLinks to display'
+                : hasDisplayedItems
+                  ? `Showing ${startItem}-${endItem} of ${totalItems} OneLinks`
+                  : 'No OneLinks on this page'}
+            </div>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+              <div className="flex items-center gap-2">
+                <span>Rows per page</span>
+                <Select
+                  value={String(currentPageSize)}
+                  onValueChange={(value) => onPageSizeChange?.(Number(value))}
+                  disabled={!onPageSizeChange}
+                >
+                  <SelectTrigger className="h-8 w-[80px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50].map((sizeOption) => (
+                      <SelectItem key={sizeOption} value={String(sizeOption)}>
+                        {sizeOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onPageChange?.(currentPage - 1)}
+                  disabled={!onPageChange || currentPage <= 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-[110px] text-center text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onPageChange?.(currentPage + 1)}
+                  disabled={!onPageChange || !hasNext}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

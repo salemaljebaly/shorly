@@ -42,8 +42,16 @@ export interface OneLink {
   userId: string;
 }
 
+export interface PaginatedOneLinks {
+  data: OneLink[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+}
+
 export const oneLinksApi = {
-  getAll: async (params?: { page?: number; pageSize?: number }): Promise<OneLink[]> => {
+  getAll: async (params?: { page?: number; pageSize?: number }): Promise<PaginatedOneLinks> => {
     const response = await apiClient.get('/onelinks', { params });
     return response.data;
   },

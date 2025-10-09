@@ -22,12 +22,10 @@ describe('Links (e2e)', () => {
     await app.init();
 
     // Register and login to get access token
-    const response = await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({
-        email: 'linkuser@example.com',
-        password: 'SecurePass123!',
-      });
+    const response = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
+      email: 'linkuser@example.com',
+      password: 'SecurePass123!',
+    });
 
     accessToken = response.body.accessToken;
     userId = response.body.user.id;
@@ -200,8 +198,11 @@ describe('Links (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
-          expect(res.body.length).toBe(2);
+          expect(Array.isArray(res.body.data)).toBe(true);
+          expect(res.body.total).toBe(2);
+          expect(res.body.page).toBe(1);
+          expect(res.body.pageSize).toBeGreaterThanOrEqual(2);
+          expect(res.body.data.length).toBe(2);
         });
     });
 
@@ -219,8 +220,9 @@ describe('Links (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.length).toBeGreaterThan(0);
-          expect(res.body[0].tags).toContain('special');
+          expect(res.body.total).toBeGreaterThan(0);
+          expect(res.body.data.length).toBeGreaterThan(0);
+          expect(res.body.data[0].tags).toContain('special');
         });
     });
 

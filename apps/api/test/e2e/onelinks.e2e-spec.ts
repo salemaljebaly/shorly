@@ -20,12 +20,10 @@ describe('OneLinks (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
 
-    const response = await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({
-        email: 'onelinkuser@example.com',
-        password: 'SecurePass123!',
-      });
+    const response = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
+      email: 'onelinkuser@example.com',
+      password: 'SecurePass123!',
+    });
 
     accessToken = response.body.accessToken;
   });
@@ -90,9 +88,7 @@ describe('OneLinks (e2e)', () => {
         .post('/api/v1/onelinks')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          targets: [
-            { deviceType: 'android', url: 'https://play.google.com' },
-          ],
+          targets: [{ deviceType: 'android', url: 'https://play.google.com' }],
           fallbackUrl: 'https://example.com',
         })
         .expect(201)
@@ -139,9 +135,7 @@ describe('OneLinks (e2e)', () => {
         .post('/api/v1/onelinks')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          targets: [
-            { deviceType: 'invalid', url: 'https://example.com' },
-          ],
+          targets: [{ deviceType: 'invalid', url: 'https://example.com' }],
           fallbackUrl: 'https://example.com',
         })
         .expect(400);
@@ -152,9 +146,7 @@ describe('OneLinks (e2e)', () => {
         .post('/api/v1/onelinks')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          targets: [
-            { deviceType: 'android', url: 'not-a-url' },
-          ],
+          targets: [{ deviceType: 'android', url: 'not-a-url' }],
           fallbackUrl: 'https://example.com',
         })
         .expect(400);
@@ -198,8 +190,11 @@ describe('OneLinks (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
-          expect(res.body.length).toBe(2);
+          expect(Array.isArray(res.body.data)).toBe(true);
+          expect(res.body.total).toBe(2);
+          expect(res.body.page).toBe(1);
+          expect(res.body.pageSize).toBeGreaterThanOrEqual(2);
+          expect(res.body.data.length).toBe(2);
         });
     });
 

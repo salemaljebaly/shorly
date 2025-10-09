@@ -28,6 +28,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { authApi } from '@/lib/api/auth';
+import { useLocalePath } from '@/lib/locale-routing';
 
 const resetPasswordSchema = z
   .object({
@@ -45,6 +46,7 @@ function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const { buildPath } = useLocalePath();
   const [isLoading, setIsLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
@@ -71,7 +73,7 @@ function ResetPasswordContent() {
 
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        router.push('/login');
+        router.push(buildPath('/login'));
       }, 3000);
     } catch (error) {
       toast.error((error as any)?.response?.data?.message || 'Failed to reset password');
@@ -95,7 +97,7 @@ function ResetPasswordContent() {
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center">
-            <Link href="/forgot-password">
+            <Link href={buildPath('/forgot-password')}>
               <Button>Request new reset link</Button>
             </Link>
           </CardFooter>
@@ -118,7 +120,7 @@ function ResetPasswordContent() {
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center">
-            <Link href="/login">
+            <Link href={buildPath('/login')}>
               <Button>Go to login</Button>
             </Link>
           </CardFooter>
@@ -177,7 +179,7 @@ function ResetPasswordContent() {
         <CardFooter className="flex justify-center">
           <div className="text-sm text-center text-muted-foreground">
             Remember your password?{' '}
-            <Link href="/login" className="text-primary hover:underline">
+            <Link href={buildPath('/login')} className="text-primary hover:underline">
               Sign in
             </Link>
           </div>

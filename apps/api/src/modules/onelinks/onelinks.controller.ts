@@ -48,7 +48,7 @@ export class OneLinksController {
       page ? parseInt(page) : undefined,
       pageSize ? parseInt(pageSize) : undefined
     );
-    return result.data;
+    return result;
   }
 
   @Get('code/:shortCode')
@@ -73,7 +73,11 @@ export class OneLinksController {
   @ApiOperation({ summary: 'Update a OneLink' })
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  update(@CurrentUser('id') userId: string, @Param('id') id: string, @Body() dto: UpdateOneLinkDto) {
+  update(
+    @CurrentUser('id') userId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateOneLinkDto
+  ) {
     return this.oneLinksService.update(userId, id, dto);
   }
 

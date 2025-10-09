@@ -91,7 +91,7 @@ function QRCodePage() {
   const fetchLinks = async () => {
     try {
       setLoadingLinks(true);
-      const data = await linksApi.getAll();
+      const { data } = await linksApi.getAll();
       setLinks(data);
     } catch (error) {
       toast.error('Failed to load links');

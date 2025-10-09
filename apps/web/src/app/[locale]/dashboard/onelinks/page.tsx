@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
-import { oneLinksApi, type OneLink } from '@/lib/api';
+import { oneLinksApi, type OneLink, type PaginatedOneLinks } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,27 +17,51 @@ import { CreateOneLinkDialog } from '@/components/onelinks/create-onelink-dialog
 import { toast } from 'sonner';
 
 export default function OneLinksPage() {
-  const [oneLinks, setOneLinks] = useState<OneLink[]>([]);
+  const [oneLinksResult, setOneLinksResult] = useState<PaginatedOneLinks | null>(null);
+  const oneLinks: OneLink[] = oneLinksResult?.data ?? [];
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const fetchOneLinks = useCallback(
+    async (options?: { page?: number; pageSize?: number }) => {
+      const nextPage = options?.page ?? page;
+      const nextPageSize = options?.pageSize ?? pageSize;
+
+      try {
+        setLoading(true);
+        const result = await oneLinksApi.getAll({ page: nextPage, pageSize: nextPageSize });
+        setOneLinksResult(result);
+        setPage(result.page);
+        setPageSize(result.pageSize);
+      } catch (error) {
+        toast.error('Failed to load OneLinks');
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, pageSize]
+  );
 
   useEffect(() => {
     fetchOneLinks();
-  }, []);
+  }, [fetchOneLinks]);
 
-  const fetchOneLinks = async () => {
-    try {
-      setLoading(true);
-      const data = await oneLinksApi.getAll();
-      setOneLinks(data);
-    } catch (error) {
-      toast.error('Failed to load OneLinks');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage);
+  };
+
+  const handlePageSizeChange = (nextSize: number) => {
+    setPage(1);
+    setPageSize(nextSize);
+  };
+
+  const refreshOneLinks = () => {
+    fetchOneLinks();
   };
 
   const filteredOneLinks = oneLinks.filter((oneLink) => {
@@ -55,7 +79,16 @@ export default function OneLinksPage() {
     return matchesSearch && matchesStatus;
   });
 
-  if (loading) {
+  const pagination = oneLinksResult
+    ? {
+        page: oneLinksResult.page,
+        pageSize: oneLinksResult.pageSize,
+        total: oneLinksResult.total,
+        hasNext: oneLinksResult.hasNext,
+      }
+    : undefined;
+
+  if (loading && !oneLinksResult) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-muted-foreground">Loading OneLinks...</div>
@@ -106,13 +139,25 @@ export default function OneLinksPage() {
       </div>
 
       {/* OneLinks Table */}
-      <OneLinksTable oneLinks={filteredOneLinks} onUpdate={fetchOneLinks} />
+      {loading ? (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-muted-foreground">Loading OneLinks...</div>
+        </div>
+      ) : (
+        <OneLinksTable
+          oneLinks={filteredOneLinks}
+          onUpdate={refreshOneLinks}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      )}
 
       {/* Create OneLink Dialog */}
       <CreateOneLinkDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
-        onSuccess={fetchOneLinks}
+        onSuccess={refreshOneLinks}
       />
     </div>
   );

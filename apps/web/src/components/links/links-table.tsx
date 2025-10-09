@@ -11,6 +11,8 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,16 +45,47 @@ import { toast } from 'sonner';
 import { EditLinkDialog } from './edit-link-dialog';
 import { linksApi, type Link } from '@/lib/api';
 import { buildLocalePath } from '@/lib/locale-routing';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface LinksTableProps {
   links: Link[];
   onUpdate?: () => void;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    hasNext: boolean;
+  };
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
-export function LinksTable({ links, onUpdate }: LinksTableProps) {
+export function LinksTable({
+  links,
+  onUpdate,
+  pagination,
+  onPageChange,
+  onPageSizeChange,
+}: LinksTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedLink, setSelectedLink] = useState<Link | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const currentPage = pagination?.page ?? 1;
+  const currentPageSize = pagination?.pageSize ?? (links.length || 1);
+  const totalItems = pagination?.total ?? links.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / currentPageSize));
+  const hasNext = pagination?.hasNext ?? currentPage < totalPages;
+  const displayedCount = links.length;
+  const hasDisplayedItems = displayedCount > 0;
+  const startItem = hasDisplayedItems ? (currentPage - 1) * currentPageSize + 1 : 0;
+  const endItem = hasDisplayedItems ? startItem + displayedCount - 1 : 0;
 
   const copyToClipboard = (shortCode: string) => {
     if (typeof window === 'undefined') return;
@@ -122,17 +155,6 @@ export function LinksTable({ links, onUpdate }: LinksTableProps) {
     return new Date(expiresAt) < new Date();
   };
 
-  if (links.length === 0) {
-    return (
-      <div className="rounded-md border">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No links found</p>
-          <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="rounded-md border">
@@ -148,113 +170,187 @@ export function LinksTable({ links, onUpdate }: LinksTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {links.map((link) => (
-              <TableRow key={link.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <span className="text-primary">/{link.shortCode}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => copyToClipboard(link.shortCode)}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
+            {links.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6}>
+                  <div className="py-12 text-center">
+                    <p className="text-muted-foreground">No links found</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Try adjusting your search or filters
+                    </p>
                   </div>
-                  {link.expiresAt && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {isExpired(link.expiresAt) ? (
-                        <span className="text-destructive">Expired</span>
-                      ) : (
-                        `Expires ${formatDate(link.expiresAt)}`
-                      )}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div>
-                    {link.title && <div className="font-medium">{link.title}</div>}
-                    <div
-                      className={`max-w-md truncate ${
-                        link.title ? 'text-xs text-muted-foreground' : ''
-                      }`}
-                      title={link.destinationUrl}
-                    >
-                      {link.destinationUrl}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <BarChart2 className="h-3 w-3 text-muted-foreground" />
-                    <span>{(link.clicks ?? 0).toLocaleString()}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      isExpired(link.expiresAt)
-                        ? 'destructive'
-                        : link.isActive
-                          ? 'default'
-                          : 'secondary'
-                    }
-                  >
-                    {isExpired(link.expiresAt) ? 'Expired' : link.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {formatDate(link.createdAt)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => window.open(`/${link.shortCode}`, '_blank')}>
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        Visit Link
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleViewAnalytics(link)}>
-                        <BarChart2 className="mr-2 h-4 w-4" />
-                        View Analytics
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleGenerateQR(link)}>
-                        <QrCode className="mr-2 h-4 w-4" />
-                        Generate QR
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleEdit(link)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggleStatus(link)}>
-                        {link.isActive ? (
-                          <ToggleLeft className="mr-2 h-4 w-4" />
-                        ) : (
-                          <ToggleRight className="mr-2 h-4 w-4" />
-                        )}
-                        {link.isActive ? 'Deactivate' : 'Activate'}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => handleDelete(link)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              links.map((link) => (
+                <TableRow key={link.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <span className="text-primary">/{link.shortCode}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => copyToClipboard(link.shortCode)}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    {link.expiresAt && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {isExpired(link.expiresAt) ? (
+                          <span className="text-destructive">Expired</span>
+                        ) : (
+                          `Expires ${formatDate(link.expiresAt)}`
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      {link.title && <div className="font-medium">{link.title}</div>}
+                      <div
+                        className={`max-w-md truncate ${
+                          link.title ? 'text-xs text-muted-foreground' : ''
+                        }`}
+                        title={link.destinationUrl}
+                      >
+                        {link.destinationUrl}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <BarChart2 className="h-3 w-3 text-muted-foreground" />
+                      <span>{(link.clicks ?? 0).toLocaleString()}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        isExpired(link.expiresAt)
+                          ? 'destructive'
+                          : link.isActive
+                            ? 'default'
+                            : 'secondary'
+                      }
+                    >
+                      {isExpired(link.expiresAt)
+                        ? 'Expired'
+                        : link.isActive
+                          ? 'Active'
+                          : 'Inactive'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(link.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => window.open(`/${link.shortCode}`, '_blank')}
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Visit Link
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewAnalytics(link)}>
+                          <BarChart2 className="mr-2 h-4 w-4" />
+                          View Analytics
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGenerateQR(link)}>
+                          <QrCode className="mr-2 h-4 w-4" />
+                          Generate QR
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleEdit(link)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleStatus(link)}>
+                          {link.isActive ? (
+                            <ToggleLeft className="mr-2 h-4 w-4" />
+                          ) : (
+                            <ToggleRight className="mr-2 h-4 w-4" />
+                          )}
+                          {link.isActive ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDelete(link)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
+        {pagination && (
+          <div className="flex flex-col gap-4 border-t px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+            <div>
+              {totalItems === 0
+                ? 'No links to display'
+                : hasDisplayedItems
+                  ? `Showing ${startItem}-${endItem} of ${totalItems} links`
+                  : 'No links on this page'}
+            </div>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+              <div className="flex items-center gap-2">
+                <span>Rows per page</span>
+                <Select
+                  value={String(currentPageSize)}
+                  onValueChange={(value) => onPageSizeChange?.(Number(value))}
+                  disabled={!onPageSizeChange}
+                >
+                  <SelectTrigger className="h-8 w-[80px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50].map((sizeOption) => (
+                      <SelectItem key={sizeOption} value={String(sizeOption)}>
+                        {sizeOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onPageChange?.(currentPage - 1)}
+                  disabled={!onPageChange || currentPage <= 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-[110px] text-center text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onPageChange?.(currentPage + 1)}
+                  disabled={!onPageChange || !hasNext}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}

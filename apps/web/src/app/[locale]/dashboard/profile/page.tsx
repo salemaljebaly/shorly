@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { usersApi, type UserProfile } from '@/lib/api/users';
+import { useLocalePath } from '@/lib/locale-routing';
 import { toast } from 'sonner';
 
 const profileSchema = z.object({
@@ -58,6 +59,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
 
 export default function ProfilePage() {
+  const { buildPath } = useLocalePath();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -198,7 +200,7 @@ export default function ProfilePage() {
       await usersApi.deleteAccount({ password });
       toast.success('Account deleted successfully!');
       // Redirect to login page
-      window.location.href = '/login';
+      window.location.href = buildPath('/login');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete account');
     }

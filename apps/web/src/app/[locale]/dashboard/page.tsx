@@ -33,32 +33,32 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [linksData, oneLinksData] = await Promise.all([
+      const [linksResult, oneLinksResult] = await Promise.all([
         linksApi.getAll(),
         oneLinksApi.getAll(),
       ]);
 
-      setLinks(linksData);
-      setOneLinks(oneLinksData);
+      setLinks(linksResult.data);
+      setOneLinks(oneLinksResult.data);
 
       // Calculate stats for links
-      const totalLinkClicks = linksData.reduce((sum, link) => sum + (link.clicks || 0), 0);
-      const activeLinks = linksData.filter((link) => link.isActive).length;
+      const totalLinkClicks = linksResult.data.reduce((sum, link) => sum + (link.clicks || 0), 0);
+      const activeLinks = linksResult.data.filter((link) => link.isActive).length;
       const linkClickRate =
-        linksData.length > 0 ? (totalLinkClicks / linksData.length).toFixed(1) : 0;
+        linksResult.data.length > 0 ? (totalLinkClicks / linksResult.data.length).toFixed(1) : 0;
 
       // Calculate stats for OneLinks
-      const totalOneLinkClicks = oneLinksData.reduce(
+      const totalOneLinkClicks = oneLinksResult.data.reduce(
         (sum, oneLink) => sum + (oneLink.clicks || 0),
         0
       );
 
       setStats({
-        totalLinks: linksData.length,
+        totalLinks: linksResult.total,
         totalClicks: totalLinkClicks,
         activeLinks,
         clickRate: Number(linkClickRate),
-        totalOneLinks: oneLinksData.length,
+        totalOneLinks: oneLinksResult.total,
         totalOneLinkClicks,
       });
     } catch (error) {
