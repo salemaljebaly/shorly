@@ -53,11 +53,29 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await authApi.login(data);
+
+      // Store tokens
       localStorage.setItem('access_token', response.accessToken);
       localStorage.setItem('refresh_token', response.refreshToken);
+
+      // Store user data for immediate use
+      localStorage.setItem('user_data', JSON.stringify(response.user));
+
       toast.success('Login successful!');
-      router.push(buildPath('/dashboard'));
+
+      // Check if user is admin and redirect accordingly
+      const isAdmin = response.user.role === 'ADMIN' || response.user.role === 'SUPER_ADMIN';
+      const redirectPath = isAdmin ? '/admin' : '/dashboard';
+      const finalPath = buildPath(redirectPath);
+
+      console.log('Login successful - User:', response.user);
+      console.log('Is Admin:', isAdmin);
+      console.log('Redirecting to:', finalPath);
+
+      // Force redirect using window.location to ensure it works
+      window.location.href = finalPath;
     } catch (error) {
+      console.error('Login error:', error);
       toast.error((error as any)?.response?.data?.message || 'Login failed');
     } finally {
       setIsLoading(false);

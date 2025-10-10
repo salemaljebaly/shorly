@@ -69,7 +69,11 @@ export default function RegisterPage() {
       localStorage.setItem('access_token', response.accessToken);
       localStorage.setItem('refresh_token', response.refreshToken);
       toast.success('Account created successfully!');
-      router.push(buildPath('/dashboard'));
+
+      // Check if user is admin and redirect accordingly
+      const isAdmin = response.user.role === 'ADMIN' || response.user.role === 'SUPER_ADMIN';
+      const redirectPath = isAdmin ? '/admin' : '/dashboard';
+      router.push(buildPath(redirectPath));
     } catch (error) {
       toast.error((error as any)?.response?.data?.message || 'Registration failed');
     } finally {

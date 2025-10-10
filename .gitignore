@@ -58,4 +58,11 @@ docker-compose.override.yml
 *.db
 *.db-journal
 
+# Claude Code
+claude.md
+
 *.test.md
+
+# docs
+docs/business
+docs/admin-panel
