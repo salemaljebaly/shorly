@@ -14,6 +14,8 @@ import { HealthModule } from './modules/health/health.module';
 import { AppController } from './app.controller';
 import { AppHttpSetupService } from './app-http-setup.service';
 import { UsersModule } from './modules/users/users.module';
+import { RbacModule } from './modules/rbac/rbac.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { UsersModule } from './modules/users/users.module';
     QrModule,
     RedirectModule,
     UsersModule,
+    RbacModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppHttpSetupService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
