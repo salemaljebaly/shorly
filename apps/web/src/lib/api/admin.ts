@@ -1,0 +1,158 @@
+import { apiClient } from './client';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  avatar: string | null;
+  role: string;
+  plan: string;
+  status: 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
+  total_links: number;
+  total_onelinks: number;
+  total_clicks: number;
+  createdAt: string;
+  suspendedAt: string | null;
+  suspendedBy: string | null;
+  suspensionReason: string | null;
+}
+
+export interface UserListQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  plan?: 'FREE' | 'STARTER' | 'PRO';
+  status?: 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
+  sortBy?: 'email' | 'name' | 'createdAt' | 'total_links' | 'total_clicks';
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+export interface UserListResponse {
+  data: User[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface UserUsageStats {
+  allTime: {
+    totalLinks: number;
+    totalOneLinks: number;
+    totalClicks: number;
+  };
+  currentMonth: {
+    linksThisMonth: number;
+    oneLinksThisMonth: number;
+    clicksThisMonth: number;
+  };
+  limits: {
+    links: number;
+    onelinks: number;
+    clicks: number;
+  };
+}
+
+export interface UserActivity {
+  type: string;
+  timestamp: string;
+  details: Record<string, any>;
+}
+
+export interface UserDetails {
+  user: User & {
+    avatar: string | null;
+    bio: string | null;
+    location: string | null;
+    website: string | null;
+    timezone: string;
+    language: string;
+    emailNotifications: boolean;
+    analyticsTracking: boolean;
+    isActive: boolean;
+    lastLoginAt?: string;
+  };
+  usage: UserUsageStats;
+  recentActivity: UserActivity[];
+}
+
+export interface UpdateUserData {
+  name?: string;
+  email?: string;
+  avatar?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  timezone?: string;
+  language?: string;
+  emailNotifications?: boolean;
+  analyticsTracking?: boolean;
+  isActive?: boolean;
+  plan?: 'FREE' | 'STARTER' | 'PRO';
+  role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+}
+
+export interface CreateUserData extends UpdateUserData {
+  password: string;
+}
+
+export interface SuspendUserData {
+  reason: string;
+  notifyUser: boolean;
+}
+
+export interface ActivateUserData {
+  notifyUser: boolean;
+}
+
+export interface DeleteUserData {
+  confirm: string;
+  reason: string;
+}
+
+export interface ImpersonateUserResponse {
+  token: string;
+  expiresIn: number;
+  targetUser: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+}
+
+export interface AdminActionResponse {
+  success: boolean;
+  message: string;
+  user?: User;
+}
+
+export const adminApi = {
+  // User Management
+  getUsers: (query: UserListQuery = {}) =>
+    apiClient.get<UserListResponse>('/admin/users', { params: query }),
+
+  getUserDetails: (userId: string) =>
+    apiClient.get<UserDetails>(`/admin/users/${userId}`),
+
+  createUser: (data: CreateUserData) =>
+    apiClient.post<AdminActionResponse>('/admin/users', data),
+
+  updateUser: (userId: string, data: UpdateUserData) =>
+    apiClient.patch<AdminActionResponse>(`/admin/users/${userId}`, data),
+
+  suspendUser: (userId: string, data: SuspendUserData) =>
+    apiClient.post<AdminActionResponse>(`/admin/users/${userId}/suspend`, data),
+
+  activateUser: (userId: string, data: ActivateUserData) =>
+    apiClient.post<AdminActionResponse>(`/admin/users/${userId}/activate`, data),
+
+  deleteUser: (userId: string, data: DeleteUserData) =>
+    apiClient.delete<AdminActionResponse>(`/admin/users/${userId}`, { data }),
+
+  impersonateUser: (userId: string) =>
+    apiClient.post<ImpersonateUserResponse>(`/admin/users/${userId}/impersonate`),
+};
