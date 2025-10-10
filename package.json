@@ -14,6 +14,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "clean": "turbo clean && rm -rf node_modules",
     "type-check": "turbo type-check",
+    "seed": "pnpm --filter @shorly/api seed",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -1,15 +1,18 @@
 import { OneLinksService } from '../../src/modules/onelinks/onelinks.service';
+import { ShortCodeService } from '../../src/modules/shared/short-code.service';
 import { IntegrationTestContext, setupIntegrationTest } from './test-helpers';
 import { DeviceType } from '@shorly/types';
 
 describe('OneLinksService Integration Tests', () => {
   let context: IntegrationTestContext;
   let service: OneLinksService;
+  let shortCodeService: ShortCodeService;
   let userId: string;
 
   beforeAll(async () => {
     context = await setupIntegrationTest();
-    service = new OneLinksService(context.prisma, context.redis);
+    shortCodeService = new ShortCodeService(context.prisma, context.redis);
+    service = new OneLinksService(context.prisma, context.redis, shortCodeService);
   });
 
   beforeEach(async () => {
@@ -106,7 +109,7 @@ describe('OneLinksService Integration Tests', () => {
           shortCode,
           targets: [{ deviceType: DeviceType.WEB, url: 'https://example.com/2' }],
           fallbackUrl: 'https://example.com',
-        }),
+        })
       ).rejects.toThrow();
     });
   });
@@ -117,7 +120,7 @@ describe('OneLinksService Integration Tests', () => {
         service.create(userId, {
           targets: [{ deviceType: DeviceType.WEB, url: `https://example.com/${i}` }],
           fallbackUrl: 'https://example.com',
-        }),
+        })
       );
 
       const results = await Promise.all(promises);
@@ -141,7 +144,7 @@ describe('OneLinksService Integration Tests', () => {
       // iOS
       const iosUrl = service.resolveUrl(
         oneLink,
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)'
       );
       expect(iosUrl).toBe('https://apps.apple.com/app');
 
@@ -165,7 +168,7 @@ describe('OneLinksService Integration Tests', () => {
 
       const url = service.resolveUrl(
         oneLink,
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)'
       );
       expect(url).toBe('https://apps.apple.com/high');
     });

@@ -18,7 +18,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "seed": "prisma db seed"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
@@ -50,6 +51,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
+    "@types/multer": "^2.0.0",
     "@types/node": "^24.6.2",
     "@types/passport-jwt": "^4.0.1",
     "@types/qrcode": "^1.5.5",
@@ -66,6 +68,9 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
   },
+  "prisma": {
+    "seed": "ts-node --project tsconfig.prisma.json prisma/seed.ts"
+  },
   "jest": {
     "moduleFileExtensions": [
       "js",
@@ -75,10 +80,10 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.ts$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s",
+      "**/*.ts",
       "!**/*.spec.ts",
       "!**/*.e2e-spec.ts",
       "!**/node_modules/**",

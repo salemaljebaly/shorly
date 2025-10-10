@@ -1,16 +1,23 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+  Inject,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
-import { generateShortCode, isValidShortCode, sanitizeShortCode, isReservedShortCode, isValidUrl, isSafeUrl } from '@shorly/utils';
-import { APP_CONSTANTS } from '@shorly/config';
+import { isValidUrl, isSafeUrl } from '@shorly/utils';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { UpdateLinkDto } from './dto/update-link.dto';
+import { ShortCodeService } from '../shared/short-code.service';
 
 @Injectable()
 export class LinksService {
   constructor(
     private prisma: PrismaClient,
-    @Inject('REDIS_CLIENT') private redis: Redis
+    @Inject('REDIS_CLIENT') private redis: Redis,
+    private shortCodeService: ShortCodeService
   ) {}
 
   async create(userId: string, dto: CreateLinkDto) {
@@ -21,26 +28,24 @@ export class LinksService {
 
     // Handle short code
     let shortCode: string;
-    if (dto.shortCode) {
-      // Validate original input first
-      if (!isValidShortCode(dto.shortCode)) {
-        throw new BadRequestException('Invalid short code format');
+    try {
+      const validatedCode = this.shortCodeService.validateAndSanitizeShortCode(dto.shortCode);
+      if (validatedCode) {
+        shortCode = validatedCode;
+        // Check if already exists
+        const existing = await this.shortCodeService.findByShortCode(shortCode);
+        if (existing) {
+          throw new ConflictException('Short code already exists');
+        }
+      } else {
+        // Generate unique short code
+        shortCode = await this.shortCodeService.generateUniqueShortCode();
       }
-
-      shortCode = sanitizeShortCode(dto.shortCode);
-
-      if (isReservedShortCode(shortCode)) {
-        throw new BadRequestException('Short code is reserved');
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
       }
-
-      // Check if already exists
-      const existing = await this.findByShortCode(shortCode);
-      if (existing) {
-        throw new ConflictException('Short code already exists');
-      }
-    } else {
-      // Generate unique short code
-      shortCode = await this.generateUniqueShortCode();
+      throw new BadRequestException(error.message);
     }
 
     const link = await this.prisma.link.create({
@@ -50,13 +55,14 @@ export class LinksService {
         title: dto.title,
         description: dto.description,
         tags: dto.tags || [],
+        isActive: dto.isActive ?? true, // Default to true if not provided
         expiresAt: dto.expiresAt,
         userId,
       },
     });
 
     // Cache the link
-    await this.cacheLink(link);
+    await this.shortCodeService.cacheLink(link);
 
     return link;
   }
@@ -75,12 +81,24 @@ export class LinksService {
         skip,
         take: pageSize,
         orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: { clicks: true },
+          },
+        },
       }),
       this.prisma.link.count({ where }),
     ]);
 
+    // Transform to include clicks count
+    const linksWithClicks = links.map((link) => ({
+      ...link,
+      clicks: link._count.clicks,
+      _count: undefined,
+    }));
+
     return {
-      data: links,
+      data: linksWithClicks,
       total,
       page,
       pageSize,
@@ -91,29 +109,54 @@ export class LinksService {
   async findOne(userId: string, id: string) {
     const link = await this.prisma.link.findFirst({
       where: { id, userId },
+      include: {
+        _count: {
+          select: { clicks: true },
+        },
+      },
     });
 
     if (!link) {
       throw new NotFoundException('Link not found');
     }
 
-    return link;
+    return {
+      ...link,
+      clicks: link._count.clicks,
+      _count: undefined,
+    };
   }
 
   async findByShortCode(shortCode: string) {
     // Try cache first
     const cached = await this.redis.get(`link:${shortCode}`);
     if (cached) {
-      return JSON.parse(cached);
+      const parsedLink = JSON.parse(cached);
+      // Get fresh click count
+      const clickCount = await this.prisma.clickEvent.count({
+        where: { linkId: parsedLink.id },
+      });
+      return { ...parsedLink, clicks: clickCount };
     }
 
     // Fetch from database
     const link = await this.prisma.link.findUnique({
       where: { shortCode },
+      include: {
+        _count: {
+          select: { clicks: true },
+        },
+      },
     });
 
     if (link) {
-      await this.cacheLink(link);
+      const linkWithClicks = {
+        ...link,
+        clicks: link._count.clicks,
+        _count: undefined,
+      };
+      await this.shortCodeService.cacheLink(linkWithClicks);
+      return linkWithClicks;
     }
 
     return link;
@@ -134,7 +177,7 @@ export class LinksService {
     });
 
     // Update cache
-    await this.cacheLink(link);
+    await this.shortCodeService.cacheLink(link);
 
     return link;
   }
@@ -147,25 +190,8 @@ export class LinksService {
     });
 
     // Remove from cache
-    await this.redis.del(`link:${link.shortCode}`);
+    await this.shortCodeService.removeCachedLink(link.shortCode);
 
     return { message: 'Link deleted successfully' };
-  }
-
-  private async generateUniqueShortCode(): Promise<string> {
-    for (let i = 0; i < APP_CONSTANTS.MAX_SHORT_CODE_ATTEMPTS; i++) {
-      const code = generateShortCode();
-      const existing = await this.findByShortCode(code);
-      if (!existing) {
-        return code;
-      }
-    }
-
-    throw new Error('Failed to generate unique short code');
-  }
-
-  private async cacheLink(link: any): Promise<void> {
-    const ttl = parseInt(process.env.REDIS_TTL || '3600');
-    await this.redis.setex(`link:${link.shortCode}`, ttl, JSON.stringify(link));
   }
 }

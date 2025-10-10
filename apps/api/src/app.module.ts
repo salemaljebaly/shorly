@@ -13,6 +13,7 @@ import { RedirectModule } from './modules/redirect/redirect.module';
 import { HealthModule } from './modules/health/health.module';
 import { AppController } from './app.controller';
 import { AppHttpSetupService } from './app-http-setup.service';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { AppHttpSetupService } from './app-http-setup.service';
     AnalyticsModule,
     QrModule,
     RedirectModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppHttpSetupService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

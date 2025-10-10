@@ -21,6 +21,7 @@ export interface CreateLinkDto {
   title?: string;
   description?: string;
   tags?: string[];
+  isActive?: boolean;
   expiresAt?: Date;
 }
 
@@ -101,6 +102,16 @@ export interface AnalyticsSummary {
   clicksByDate: Record<string, number>;
 }
 
+export interface AnalyticsData {
+  totalClicks: number;
+  uniqueClicks: number;
+  clicksByDate: Record<string, number>;
+  byCountry: Record<string, number>;
+  byDevice: Record<string, number>;
+  byBrowser: Record<string, number>;
+  byReferer: Record<string, number>;
+}
+
 export interface AnalyticsQuery {
   linkId?: string;
   oneLinkId?: string;
@@ -116,6 +127,14 @@ export interface User {
   email: string;
   name?: string;
   apiKey?: string;
+  avatar?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  timezone?: string;
+  language?: string;
+  emailNotifications?: boolean;
+  analyticsTracking?: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -131,6 +150,47 @@ export interface UpdateUserDto {
   email?: string;
   name?: string;
   password?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name?: string;
+  avatar?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  timezone?: string;
+  language?: string;
+  emailNotifications?: boolean;
+  analyticsTracking?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UpdateProfileDto {
+  name?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  timezone?: string;
+  language?: string;
+  emailNotifications?: boolean;
+  analyticsTracking?: boolean;
+}
+
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface ResetPasswordDto {
+  token: string;
+  newPassword: string;
 }
 
 // ============= QR Code Types =============

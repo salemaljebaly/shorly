@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { Inter, Zain } from 'next/font/google';
+import { Toaster } from '@/components/ui/sonner';
 import '../globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -19,20 +20,23 @@ export async function generateStaticParams() {
   return [{ locale: 'en' }, { locale: 'ar' }];
 }
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
   params,
 }: Readonly<{
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }>) {
-  const { locale } = React.use(params);
+  const { locale } = await params;
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
   const fontClass = locale === 'ar' ? zain.className : inter.className;
 
   return (
     <html lang={locale} dir={dir}>
-      <body className={fontClass}>{children}</body>
+      <body className={fontClass}>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

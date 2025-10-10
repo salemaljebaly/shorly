@@ -61,11 +61,15 @@ cd apps/api
 pnpm prisma migrate dev
 cd ../..
 
+# Optionally seed demo data for the dashboard
+pnpm run seed
+
 # Start development servers
 pnpm dev
 ```
 
 The services will be available at:
+
 - **API**: http://localhost:3001/api/v1
 - **API Docs**: http://localhost:3001/docs
 - **Web**: http://localhost:3000
@@ -215,6 +219,7 @@ pnpm clean            # Remove all build artifacts
 Shorly supports English (LTR) and Arabic (RTL). The UI automatically adapts based on the selected language.
 
 To add more languages:
+
 1. Update `packages/config/src/index.ts` with new language codes
 2. Add translations in `apps/web/locales/`
 3. Configure next-intl in the web app
@@ -231,6 +236,7 @@ To add more languages:
 ## 📊 Analytics Privacy
 
 Shorly follows privacy-first principles:
+
 - IP addresses are anonymized (last octet removed)
 - No third-party tracking scripts
 - Minimal data collection

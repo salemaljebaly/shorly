@@ -51,7 +51,7 @@ export class LinksController {
       pageSize ? parseInt(pageSize) : undefined,
       tag
     );
-    return result.data;
+    return result;
   }
 
   @Get('code/:shortCode')
