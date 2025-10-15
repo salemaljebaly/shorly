@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, Loader2 } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { useLocalePath } from '@/lib/locale-routing';
 
 interface AdminRouteProtectionProps {
   children: React.ReactNode;
@@ -11,35 +12,34 @@ interface AdminRouteProtectionProps {
 
 export function AdminRouteProtection({ children }: AdminRouteProtectionProps) {
   const router = useRouter();
+  const { buildPath } = useLocalePath();
   const { user, loading } = useCurrentUser();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    console.log('AdminRouteProtection - User:', user, 'Loading:', loading); // Debug log
-
     if (!loading) {
       // Check if user is admin
       const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
-      console.log('AdminRouteProtection - IsAdmin:', isAdmin); // Debug log
 
       if (!user) {
         // Not logged in, redirect to login
-        console.log('Redirecting to login');
-        window.location.href = '/login';
+        console.log('AdminRouteProtection: No user - redirecting to login');
+        window.location.href = buildPath('/login');
         return;
       }
 
       if (!isAdmin) {
         // Logged in but not admin, redirect to user dashboard
-        console.log('Redirecting to dashboard - not admin');
-        window.location.href = '/dashboard';
+        console.log('AdminRouteProtection: Not admin - redirecting to dashboard');
+        window.location.href = buildPath('/dashboard');
         return;
       }
 
-      console.log('Admin access confirmed');
+      // Admin access confirmed
+      console.log('AdminRouteProtection: Admin access granted');
       setIsChecking(false);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, buildPath]);
 
   if (loading || isChecking) {
     return (

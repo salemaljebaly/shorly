@@ -17,7 +17,18 @@ export function useCurrentUser() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // First, check if we have user data in localStorage (from login)
+    // Check if we have valid tokens
+    const accessToken = localStorage.getItem('access_token');
+
+    // If no access token, user is not authenticated
+    if (!accessToken) {
+      console.log('No access token found - user not authenticated');
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    // Check if we have cached user data (only if tokens exist)
     const storedUserData = localStorage.getItem('user_data');
     if (storedUserData) {
       try {
@@ -32,7 +43,7 @@ export function useCurrentUser() {
       }
     }
 
-    // If no stored data, fetch from API
+    // If no cached data, fetch from API
     const fetchCurrentUser = async () => {
       try {
         console.log('Fetching current user from API...');
@@ -45,6 +56,11 @@ export function useCurrentUser() {
       } catch (err: any) {
         console.error('Failed to fetch current user:', err);
         setError(err.message || 'Failed to fetch user');
+        // Clear tokens if fetch fails (likely invalid/expired token)
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_data');
+        setUser(null);
       } finally {
         setLoading(false);
       }
