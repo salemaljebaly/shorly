@@ -4,12 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  Link2,
   Users,
   CreditCard,
   Shield,
   LogOut,
-  ArrowLeft,
   BarChart3,
   Settings,
 } from 'lucide-react';
@@ -17,7 +15,6 @@ import { cn } from '@/lib/utils';
 import { useLocalePath } from '@/lib/locale-routing';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 
 const adminRoutes = [
   {
@@ -91,25 +88,6 @@ export function AdminSidebar() {
               </Link>
             );
           })}
-
-          {/* Separator */}
-          <Separator className="my-4" />
-
-          {/* Quick Link to User Dashboard */}
-          <div className="px-3 pb-2">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Quick Access
-            </div>
-          </div>
-          <Link href={buildPath('/dashboard')}>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
         </div>
       </ScrollArea>
 

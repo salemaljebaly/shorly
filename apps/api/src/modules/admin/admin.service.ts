@@ -795,10 +795,9 @@ export class AdminService {
         email: user.email,
         isImpersonation: true,
         adminId,
-        exp: Math.floor(Date.now() / 1000) + (15 * 60), // 15 minutes
       };
 
-      const token = this.jwtService.sign(payload);
+      const token = this.jwtService.sign(payload, { expiresIn: '15m' });
 
       // Log admin action
       await this.adminLoggingService.logAction({
@@ -822,6 +821,221 @@ export class AdminService {
       };
     } catch (error) {
       this.logger.error(`Failed to impersonate user ${userId} for admin ${adminId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get admin dashboard metrics
+   */
+  async getDashboardMetrics(adminId: string) {
+    try {
+      // Get user statistics
+      const userStatsQuery = `
+        SELECT
+          COUNT(*) as total_users,
+          COUNT(*) FILTER (WHERE "createdAt" >= CURRENT_DATE - INTERVAL '7 days') as new_this_week,
+          COUNT(*) FILTER (WHERE "createdAt" >= DATE_TRUNC('month', CURRENT_DATE)) as new_this_month,
+          COUNT(*) FILTER (WHERE "isActive" = true AND "suspendedAt" IS NULL) as active_users
+        FROM users
+      `;
+
+      // Get usage statistics
+      const usageStatsQuery = `
+        SELECT
+          (SELECT COUNT(*) FROM links WHERE "isActive" = true) as total_links,
+          (SELECT COUNT(*) FROM onelinks WHERE "isActive" = true) as total_onelinks,
+          (SELECT COUNT(*) FROM click_events) as total_clicks,
+          (SELECT COUNT(*) FROM click_events WHERE timestamp >= CURRENT_DATE) as clicks_today
+      `;
+
+      // Get signups by day (last 30 days)
+      const signupsByDayQuery = `
+        SELECT
+          DATE("createdAt") as date,
+          COUNT(*) as count
+        FROM users
+        WHERE "createdAt" >= CURRENT_DATE - INTERVAL '30 days'
+        GROUP BY DATE("createdAt")
+        ORDER BY date ASC
+      `;
+
+      // Get recent activity (last 10 events)
+      const recentActivityQuery = `
+        (SELECT 'USER_REGISTERED' as type, "createdAt" as timestamp,
+                json_build_object('userId', id, 'email', email, 'name', name) as details
+         FROM users
+         ORDER BY "createdAt" DESC LIMIT 5)
+        UNION ALL
+        (SELECT 'LINK_CREATED' as type, "createdAt" as timestamp,
+                json_build_object('linkId', id, 'shortCode', "shortCode") as details
+         FROM links
+         ORDER BY "createdAt" DESC LIMIT 5)
+        ORDER BY timestamp DESC
+        LIMIT 10
+      `;
+
+      // Execute all queries in parallel
+      const [userStats, usageStats, signupsByDay, recentActivity] = await Promise.all([
+        this.prisma.$queryRawUnsafe(userStatsQuery),
+        this.prisma.$queryRawUnsafe(usageStatsQuery),
+        this.prisma.$queryRawUnsafe(signupsByDayQuery),
+        this.prisma.$queryRawUnsafe(recentActivityQuery),
+      ]);
+
+      const userStatsRow = (userStats as any[])[0] || {};
+      const usageStatsRow = (usageStats as any[])[0] || {};
+
+      return {
+        users: {
+          total: Number(userStatsRow.total_users || 0),
+          newThisWeek: Number(userStatsRow.new_this_week || 0),
+          newThisMonth: Number(userStatsRow.new_this_month || 0),
+          active: Number(userStatsRow.active_users || 0),
+        },
+        usage: {
+          totalLinks: Number(usageStatsRow.total_links || 0),
+          totalOneLinks: Number(usageStatsRow.total_onelinks || 0),
+          totalClicks: Number(usageStatsRow.total_clicks || 0),
+          clicksToday: Number(usageStatsRow.clicks_today || 0),
+        },
+        signupsByDay: (signupsByDay as any[]).map((row) => ({
+          date: row.date,
+          count: Number(row.count || 0),
+        })),
+        recentActivity: (recentActivity as any[]).map((activity) => ({
+          type: activity.type,
+          timestamp: activity.timestamp,
+          details: activity.details,
+        })),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get dashboard metrics for admin ${adminId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get monitoring dashboard data
+   */
+  async getMonitoringData(adminId: string) {
+    try {
+      // Get users at risk (80%+ usage)
+      const usersAtRiskQuery = `
+        WITH user_limits AS (
+          SELECT
+            u.id,
+            u.email,
+            u.name,
+            u.plan,
+            CASE u.plan
+              WHEN 'FREE' THEN 10
+              WHEN 'STARTER' THEN 50
+              WHEN 'PRO' THEN 200
+            END as links_limit,
+            CASE u.plan
+              WHEN 'FREE' THEN 1000
+              WHEN 'STARTER' THEN 10000
+              WHEN 'PRO' THEN 50000
+            END as clicks_limit,
+            COUNT(DISTINCT l.id) FILTER (WHERE l."createdAt" >= DATE_TRUNC('month', CURRENT_DATE)) as links_used,
+            COUNT(DISTINCT c.id) FILTER (WHERE c."timestamp" >= DATE_TRUNC('month', CURRENT_DATE)) as clicks_used
+          FROM users u
+          LEFT JOIN links l ON u.id = l."userId" AND l."isActive" = true
+          LEFT JOIN click_events c ON l.id = c."linkId"
+          WHERE u."isActive" = true AND u."suspendedAt" IS NULL
+          GROUP BY u.id, u.email, u.name, u.plan
+        )
+        SELECT
+          id,
+          email,
+          name,
+          plan,
+          links_used,
+          links_limit,
+          clicks_used,
+          clicks_limit,
+          ROUND(links_used * 100.0 / NULLIF(links_limit, 0), 2) as links_usage_percentage,
+          ROUND(clicks_used * 100.0 / NULLIF(clicks_limit, 0), 2) as clicks_usage_percentage
+        FROM user_limits
+        WHERE (links_used * 100.0 / NULLIF(links_limit, 0) >= 80)
+           OR (clicks_used * 100.0 / NULLIF(clicks_limit, 0) >= 80)
+        ORDER BY clicks_usage_percentage DESC
+        LIMIT 50
+      `;
+
+      // Get heavy users (top 10 by usage)
+      const heavyUsersQuery = `
+        SELECT
+          u.id,
+          u.email,
+          u.name,
+          u.plan,
+          COUNT(DISTINCT l.id) as total_links,
+          COUNT(DISTINCT o.id) as total_onelinks,
+          COUNT(DISTINCT c.id) as total_clicks
+        FROM users u
+        LEFT JOIN links l ON u.id = l."userId" AND l."isActive" = true
+        LEFT JOIN onelinks o ON u.id = o."userId" AND o."isActive" = true
+        LEFT JOIN click_events c ON (l.id = c."linkId" OR o.id = c."oneLinkId")
+        WHERE u."isActive" = true AND u."suspendedAt" IS NULL
+        GROUP BY u.id, u.email, u.name, u.plan
+        ORDER BY total_clicks DESC
+        LIMIT 10
+      `;
+
+      // Get system health stats
+      const systemHealthQuery = `
+        SELECT
+          (SELECT COUNT(*) FROM users WHERE "isActive" = true) as active_users,
+          (SELECT COUNT(*) FROM links WHERE "isActive" = true) as active_links,
+          (SELECT COUNT(*) FROM click_events WHERE "timestamp" >= CURRENT_DATE) as clicks_today,
+          (SELECT COUNT(*) FROM click_events WHERE "timestamp" >= CURRENT_TIMESTAMP - INTERVAL '1 hour') as clicks_last_hour
+      `;
+
+      // Execute queries in parallel
+      const [usersAtRisk, heavyUsers, systemHealth] = await Promise.all([
+        this.prisma.$queryRawUnsafe(usersAtRiskQuery),
+        this.prisma.$queryRawUnsafe(heavyUsersQuery),
+        this.prisma.$queryRawUnsafe(systemHealthQuery),
+      ]);
+
+      const systemHealthRow = (systemHealth as any[])[0] || {};
+
+      return {
+        usersAtRisk: (usersAtRisk as any[]).map((user) => ({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          plan: user.plan,
+          linksUsed: Number(user.links_used || 0),
+          linksLimit: Number(user.links_limit || 0),
+          clicksUsed: Number(user.clicks_used || 0),
+          clicksLimit: Number(user.clicks_limit || 0),
+          linksUsagePercentage: Number(user.links_usage_percentage || 0),
+          clicksUsagePercentage: Number(user.clicks_usage_percentage || 0),
+        })),
+        heavyUsers: (heavyUsers as any[]).map((user) => ({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          plan: user.plan,
+          totalLinks: Number(user.total_links || 0),
+          totalOneLinks: Number(user.total_onelinks || 0),
+          totalClicks: Number(user.total_clicks || 0),
+        })),
+        systemHealth: {
+          activeUsers: Number(systemHealthRow.active_users || 0),
+          activeLinks: Number(systemHealthRow.active_links || 0),
+          clicksToday: Number(systemHealthRow.clicks_today || 0),
+          clicksLastHour: Number(systemHealthRow.clicks_last_hour || 0),
+          database: { status: 'healthy' },
+          redis: { status: 'healthy' },
+          api: { status: 'healthy' },
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get monitoring data for admin ${adminId}:`, error);
       throw error;
     }
   }

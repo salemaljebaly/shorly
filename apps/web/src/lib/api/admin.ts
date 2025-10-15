@@ -202,6 +202,72 @@ export interface CancelSubscriptionData {
   reason?: string;
 }
 
+// Dashboard Metrics
+export interface DashboardMetrics {
+  users: {
+    total: number;
+    newThisWeek: number;
+    newThisMonth: number;
+    active: number;
+  };
+  usage: {
+    totalLinks: number;
+    totalOneLinks: number;
+    totalClicks: number;
+    clicksToday: number;
+  };
+  signupsByDay: Array<{
+    date: string;
+    count: number;
+  }>;
+  recentActivity: Array<{
+    type: string;
+    timestamp: string;
+    details: Record<string, any>;
+  }>;
+}
+
+// Monitoring Data
+export interface UserAtRisk {
+  id: string;
+  email: string;
+  name: string | null;
+  plan: string;
+  linksUsed: number;
+  linksLimit: number;
+  clicksUsed: number;
+  clicksLimit: number;
+  linksUsagePercentage: number;
+  clicksUsagePercentage: number;
+  status?: string;
+}
+
+export interface HeavyUser {
+  id: string;
+  email: string;
+  name: string | null;
+  plan: string;
+  totalLinks: number;
+  totalOneLinks: number;
+  totalClicks: number;
+}
+
+export interface SystemHealth {
+  activeUsers: number;
+  activeLinks: number;
+  clicksToday: number;
+  clicksLastHour: number;
+  database: { status: 'healthy' | 'degraded' | 'down' };
+  redis: { status: 'healthy' | 'degraded' | 'down' };
+  api: { status: 'healthy' | 'degraded' | 'down' };
+}
+
+export interface MonitoringData {
+  usersAtRisk: UserAtRisk[];
+  heavyUsers: HeavyUser[];
+  systemHealth: SystemHealth;
+}
+
 export const adminApi = {
   // User Management
   getUsers: (query: UserListQuery = {}) =>
@@ -240,4 +306,12 @@ export const adminApi = {
 
   cancelSubscription: (subscriptionId: string, data: CancelSubscriptionData) =>
     apiClient.delete<any>(`/billing/admin/subscriptions/${subscriptionId}`, { params: data }),
+
+  // Dashboard Metrics
+  getDashboardMetrics: () =>
+    apiClient.get<DashboardMetrics>('/admin/metrics/dashboard'),
+
+  // Monitoring
+  getMonitoringData: () =>
+    apiClient.get<MonitoringData>('/admin/metrics/monitoring'),
 };

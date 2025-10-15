@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
+import { AdminMetricsController } from './admin-metrics.controller';
 import { RbacModule } from '../rbac/rbac.module';
 import { UsersModule } from '../users/users.module';
 
@@ -9,9 +10,12 @@ import { UsersModule } from '../users/users.module';
   imports: [
     RbacModule,
     UsersModule,
-    JwtModule.register({}), // Import JwtModule to provide JwtService
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'default-secret-change-in-production',
+      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '15m' },
+    }),
   ],
-  controllers: [AdminController],
+  controllers: [AdminController, AdminMetricsController],
   providers: [AdminService],
   exports: [AdminService],
 })

@@ -211,6 +211,50 @@ async function main() {
         suspensionReason: 'Violation of terms of service',
       },
     }),
+
+    // Users at risk (80%+ usage) - for testing monitoring dashboard
+    prisma.user.create({
+      data: {
+        email: 'heavy-free@shorly.app',
+        name: 'Heavy FREE User',
+        password: passwordHash,
+        bio: 'FREE plan user approaching link limit (9/10 links used)',
+        plan: 'FREE',
+        timezone: 'America/Chicago',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: userRole.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'heavy-starter@shorly.app',
+        name: 'Heavy STARTER User',
+        password: passwordHash,
+        bio: 'STARTER plan user with high click volume (8500/10000 clicks)',
+        plan: 'STARTER',
+        timezone: 'Europe/Berlin',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: userRole.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'heavy-pro@shorly.app',
+        name: 'Heavy PRO User',
+        password: passwordHash,
+        bio: 'PRO plan user nearing link capacity (190/200 links)',
+        plan: 'PRO',
+        timezone: 'Asia/Singapore',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: userRole.id,
+      },
+    }),
   ]);
 
   const [
@@ -222,6 +266,9 @@ async function main() {
     regularUser1,
     regularUser2,
     suspendedUser,
+    heavyFreeUser,
+    heavyStarterUser,
+    heavyProUser,
   ] = users;
 
   const demoLinks = await Promise.all([
@@ -389,6 +436,54 @@ async function main() {
     }),
   ]);
 
+  // Heavy FREE user links (9 links = 90% of 10 limit)
+  const heavyFreeLinks = await Promise.all(
+    Array.from({ length: 9 }, (_, i) =>
+      prisma.link.create({
+        data: {
+          userId: heavyFreeUser.id,
+          shortCode: `free-link-${i + 1}`,
+          destinationUrl: `https://free-user.shorly.app/link-${i + 1}`,
+          title: `FREE User Link ${i + 1}`,
+          tags: ['free-plan', 'testing'],
+          isActive: true,
+        },
+      })
+    )
+  );
+
+  // Heavy STARTER user links (5 links with many clicks)
+  const heavyStarterLinks = await Promise.all(
+    Array.from({ length: 5 }, (_, i) =>
+      prisma.link.create({
+        data: {
+          userId: heavyStarterUser.id,
+          shortCode: `starter-link-${i + 1}`,
+          destinationUrl: `https://starter-user.shorly.app/link-${i + 1}`,
+          title: `STARTER User Link ${i + 1}`,
+          tags: ['starter-plan', 'high-traffic'],
+          isActive: true,
+        },
+      })
+    )
+  );
+
+  // Heavy PRO user links (190 links = 95% of 200 limit)
+  const heavyProLinks = await Promise.all(
+    Array.from({ length: 190 }, (_, i) =>
+      prisma.link.create({
+        data: {
+          userId: heavyProUser.id,
+          shortCode: `pro-link-${i + 1}`,
+          destinationUrl: `https://pro-user.shorly.app/link-${i + 1}`,
+          title: `PRO User Link ${i + 1}`,
+          tags: ['pro-plan', 'bulk'],
+          isActive: true,
+        },
+      })
+    )
+  );
+
   const now = new Date();
   const clickEvents = [
     // Demo user link clicks
@@ -496,6 +591,36 @@ async function main() {
 
   await prisma.clickEvent.createMany({ data: clickEvents });
 
+  // Generate 8500 clicks for heavy STARTER user (85% of 10000 limit)
+  // Using createMany in batches for better performance
+  const starterClicksData = [];
+  const currentMonth = new Date();
+  currentMonth.setDate(1); // First day of current month
+  currentMonth.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < 8500; i++) {
+    const linkIndex = i % heavyStarterLinks.length;
+    const hoursAgo = Math.floor(i / 10); // Spread over time
+    starterClicksData.push({
+      linkId: heavyStarterLinks[linkIndex].id,
+      timestamp: new Date(currentMonth.getTime() + hoursAgo * 3600_000),
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      referer: 'https://google.com',
+      country: 'United States',
+      city: 'Seattle',
+      device: 'desktop',
+      browser: 'Chrome',
+      os: 'Windows',
+    });
+  }
+
+  // Create clicks in batches to avoid memory issues
+  const batchSize = 1000;
+  for (let i = 0; i < starterClicksData.length; i += batchSize) {
+    const batch = starterClicksData.slice(i, i + batchSize);
+    await prisma.clickEvent.createMany({ data: batch });
+  }
+
   console.log('✅ Seed data created successfully.');
 
   // Display login credentials
@@ -532,9 +657,22 @@ async function main() {
   console.log('📧 Email: suspended@shorly.app');
   console.log('🔐 Password: Password123!');
   console.log('👤 Role: USER (Suspended - for testing suspension features)');
+  console.log('');
+  console.log('📧 Email: heavy-free@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: USER (FREE plan - 9/10 links used, 90% usage)');
+  console.log('');
+  console.log('📧 Email: heavy-starter@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: USER (STARTER plan - 8500/10000 clicks used, 85% usage)');
+  console.log('');
+  console.log('📧 Email: heavy-pro@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: USER (PRO plan - 190/200 links used, 95% usage)');
   console.log('=====================================');
   console.log('🌐 Admin Dashboard: http://localhost:3000/admin');
   console.log('🏠 User Dashboard: http://localhost:3000/dashboard');
+  console.log('📊 Monitoring Dashboard: http://localhost:3000/admin/monitoring');
   console.log('');
 }
 

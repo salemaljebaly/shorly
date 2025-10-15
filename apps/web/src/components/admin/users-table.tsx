@@ -158,6 +158,43 @@ export function UsersTable({ onUserView, onUserEdit }: UsersTableProps) {
     }
   };
 
+  const handleImpersonateUser = async (user: User) => {
+    try {
+      const response = await adminApi.impersonateUser(user.id);
+      const { token, targetUser } = response.data;
+
+      // Store the admin's current tokens for restoration
+      const adminAccessToken = localStorage.getItem('access_token');
+      const adminRefreshToken = localStorage.getItem('refresh_token');
+      const adminUserData = localStorage.getItem('user_data');
+
+      if (adminAccessToken) localStorage.setItem('admin_access_token', adminAccessToken);
+      if (adminRefreshToken) localStorage.setItem('admin_refresh_token', adminRefreshToken);
+      if (adminUserData) localStorage.setItem('admin_user_data', adminUserData);
+
+      // Set impersonation token and user data
+      localStorage.setItem('access_token', token);
+      localStorage.setItem('impersonating', 'true');
+      localStorage.setItem('impersonated_user', JSON.stringify(targetUser));
+
+      toast({
+        title: 'Impersonation Started',
+        description: `You are now viewing as ${targetUser.name || targetUser.email}`,
+      });
+
+      // Redirect to user dashboard after a short delay
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to impersonate user',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       ACTIVE: 'default',
@@ -354,7 +391,10 @@ export function UsersTable({ onUserView, onUserEdit }: UsersTableProps) {
                             Activate User
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleImpersonateUser(user)}
+                          disabled={user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.status !== 'ACTIVE'}
+                        >
                           <UserCheck className="mr-2 h-4 w-4" />
                           Impersonate User
                         </DropdownMenuItem>
