@@ -16,6 +16,7 @@ import { AppHttpSetupService } from './app-http-setup.service';
 import { UsersModule } from './modules/users/users.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { BillingModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AdminModule } from './modules/admin/admin.module';
     UsersModule,
     RbacModule,
     AdminModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [AppHttpSetupService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

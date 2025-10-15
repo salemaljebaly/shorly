@@ -159,23 +159,25 @@ model AdminLog {
 
 // ============= Subscription Model (Future: Billing) =============
 model Subscription {
-  id     String             @id @default(cuid())
-  userId String             @unique
-  plan   SubscriptionPlan   @default(FREE)
-  status SubscriptionStatus @default(ACTIVE)
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  plan                 SubscriptionPlan   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
 
   // Provider fields (for billing integration)
-  provider           String? // paypal, paddle, stripe, manual
-  providerId         String? // External subscription ID
-  providerCustomerId String? // External customer ID
+  provider             String?            @default("stripe") // paypal, paddle, stripe, manual
+  providerSubscriptionId String?         // External subscription ID
+  providerCustomerId   String?           // External customer ID
 
   // Period tracking
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-  cancelAtPeriodEnd  Boolean   @default(false)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean           @default(false)
+  trialEnd             DateTime?
+  canceledAt           DateTime?
 
   // Metadata for provider-specific data
-  metadata Json?
+  metadata             Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -183,7 +185,7 @@ model Subscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([provider])
-  @@index([providerId])
+  @@index([providerSubscriptionId])
   @@index([status])
   @@map("subscriptions")
 }

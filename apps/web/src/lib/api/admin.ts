@@ -130,6 +130,78 @@ export interface AdminActionResponse {
   user?: User;
 }
 
+// Billing & Subscription Management
+export interface Subscription {
+  id: string;
+  userId: string;
+  plan: 'FREE' | 'STARTER' | 'PRO';
+  status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'TRIALING' | 'PAUSED' | 'INACTIVE';
+  provider?: string;
+  providerSubscriptionId?: string;
+  providerCustomerId?: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd: boolean;
+  trialEnd?: string;
+  canceledAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: Record<string, any> | null;
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+}
+
+export interface SubscriptionListQuery {
+  page?: number;
+  pageSize?: number;
+  status?: 'ACTIVE' | 'TRIALING' | 'PAST_DUE' | 'CANCELED' | 'PAUSED' | 'INACTIVE';
+  plan?: 'FREE' | 'STARTER' | 'PRO';
+  search?: string;
+  sortBy?: 'createdAt' | 'currentPeriodStart' | 'plan' | 'status';
+  sortOrder?: 'ASC' | 'DESC' | 'asc' | 'desc';
+}
+
+export interface SubscriptionListResponse {
+  data: Subscription[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface SubscriptionMetrics {
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  canceledSubscriptions: number;
+  trialSubscriptions: number;
+  pastDueSubscriptions: number;
+  monthlyRecurringRevenue: number;
+  annualRunRate: number;
+  subscriptionsByPlan: Record<string, number>;
+  subscriptionsByStatus: Record<string, number>;
+  newSubscriptionsThisMonth: number;
+  churnedSubscriptionsThisMonth: number;
+}
+
+export interface CreateManualSubscriptionData {
+  customer: string;
+  plan: 'STARTER' | 'PRO';
+  trialPeriodDays?: number;
+  metadata?: Record<string, string>;
+}
+
+export interface CancelSubscriptionData {
+  immediate: boolean;
+  reason?: string;
+}
+
 export const adminApi = {
   // User Management
   getUsers: (query: UserListQuery = {}) =>
@@ -155,4 +227,17 @@ export const adminApi = {
 
   impersonateUser: (userId: string) =>
     apiClient.post<ImpersonateUserResponse>(`/admin/users/${userId}/impersonate`),
+
+  // Billing & Subscription Management
+  getSubscriptions: (query: SubscriptionListQuery = {}) =>
+    apiClient.get<SubscriptionListResponse>('/billing/admin/subscriptions', { params: query }),
+
+  getSubscriptionMetrics: () =>
+    apiClient.get<{ success: boolean; metrics: SubscriptionMetrics }>('/billing/admin/metrics'),
+
+  createManualSubscription: (data: CreateManualSubscriptionData) =>
+    apiClient.post<any>('/billing/admin/subscriptions/manual', data),
+
+  cancelSubscription: (subscriptionId: string, data: CancelSubscriptionData) =>
+    apiClient.delete<any>(`/billing/admin/subscriptions/${subscriptionId}`, { params: data }),
 };

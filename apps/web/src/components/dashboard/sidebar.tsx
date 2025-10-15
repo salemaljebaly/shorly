@@ -12,6 +12,7 @@ import {
   LogOut,
   Users,
   Shield,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocalePath } from '@/lib/locale-routing';
@@ -46,6 +47,11 @@ const routes = [
     href: '/dashboard/qr',
   },
   {
+    label: 'Billing',
+    icon: CreditCard,
+    href: '/dashboard/billing',
+  },
+  {
     label: 'Settings',
     icon: Settings,
     href: '/dashboard/settings',
@@ -62,6 +68,11 @@ const adminRoutes = [
     label: 'Users',
     icon: Users,
     href: '/admin/users',
+  },
+  {
+    label: 'Subscriptions',
+    icon: CreditCard,
+    href: '/admin/subscriptions',
   },
 ];
 
