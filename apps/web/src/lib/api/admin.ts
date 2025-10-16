@@ -268,6 +268,47 @@ export interface MonitoringData {
   systemHealth: SystemHealth;
 }
 
+// Admin Logs
+export interface AdminLog {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  metadata: Record<string, any>;
+  timestamp: string;
+}
+
+export interface AdminLogsQuery {
+  page?: number;
+  limit?: number;
+  adminId?: string;
+  action?: string;
+  targetType?: string;
+  targetId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface AdminLogsResponse {
+  logs: AdminLog[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface AdminLogStats {
+  totalActions: number;
+  uniqueAdmins: number;
+  actionsByType: Record<string, number>;
+}
+
 export const adminApi = {
   // User Management
   getUsers: (query: UserListQuery = {}) =>
@@ -314,4 +355,16 @@ export const adminApi = {
   // Monitoring
   getMonitoringData: () =>
     apiClient.get<MonitoringData>('/admin/metrics/monitoring'),
+
+  // Admin Logs
+  getAdminLogs: (query: AdminLogsQuery = {}) =>
+    apiClient.get<AdminLogsResponse>('/admin/logs', { params: query }),
+
+  getRecentAdminActivity: () =>
+    apiClient.get<{ logs: AdminLog[] }>('/admin/logs/recent'),
+
+  getAdminLogStats: () =>
+    apiClient.get<{ stats: AdminLogStats }>('/admin/logs/stats'),
 };
+
+export default adminApi;

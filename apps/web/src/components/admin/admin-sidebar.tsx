@@ -10,6 +10,7 @@ import {
   LogOut,
   BarChart3,
   Settings,
+  ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocalePath } from '@/lib/locale-routing';
@@ -36,6 +37,11 @@ const adminRoutes = [
     label: 'Monitoring',
     icon: BarChart3,
     href: '/admin/monitoring',
+  },
+  {
+    label: 'Audit Logs',
+    icon: ScrollText,
+    href: '/admin/logs',
   },
   {
     label: 'Settings',

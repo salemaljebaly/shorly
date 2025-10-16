@@ -43,18 +43,6 @@ export function AdminHeader({ user }: AdminHeaderProps) {
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-6">
-      {/* Left side - Title and User Dashboard Link */}
-      <div className="flex items-center gap-4">
-        <Link href={buildPath('/dashboard')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" />
-          <span>User Dashboard</span>
-        </Link>
-        <div className="h-6 w-px bg-border" />
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">Admin Panel</h1>
-        </div>
-      </div>
 
       {/* Center - Search */}
       <div className="flex w-full max-w-md items-center gap-2">
