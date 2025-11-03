@@ -14,7 +14,7 @@
     "@shorly/config": "workspace:*",
     "@shorly/types": "workspace:*",
     "nanoid": "^5.1.6",
-    "ua-parser-js": "^2.0.5"
+    "ua-parser-js": "^2.0.6"
   },
   "devDependencies": {
     "@types/node": "^24.6.2",
