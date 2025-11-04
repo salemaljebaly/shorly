@@ -1,5 +1,6 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModuleOptions, ThrottlerStorage } from '@nestjs/throttler';
+import { Reflector } from '@nestjs/core';
 import { SettingsService } from '../settings.service';
 
 /**
@@ -9,9 +10,13 @@ import { SettingsService } from '../settings.service';
  */
 @Injectable()
 export class DynamicRateLimitGuard extends ThrottlerGuard {
-  constructor(private readonly settingsService: SettingsService) {
-    // Pass through to parent ThrottlerGuard with empty options
-    super({} as any, null as any, null as any);
+  constructor(
+    options: ThrottlerModuleOptions,
+    storageService: ThrottlerStorage,
+    reflector: Reflector,
+    private readonly settingsService: SettingsService
+  ) {
+    super(options, storageService, reflector);
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
