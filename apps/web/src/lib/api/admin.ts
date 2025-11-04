@@ -309,16 +309,54 @@ export interface AdminLogStats {
   actionsByType: Record<string, number>;
 }
 
+// Settings
+export interface SystemSettings {
+  system: {
+    maintenance_mode: boolean;
+    api_version: string;
+  };
+  email: {
+    email_notifications_enabled: boolean;
+    admin_alerts_enabled: boolean;
+  };
+  security: {
+    session_timeout_minutes: number;
+    require_2fa_for_admins: boolean;
+  };
+  'rate-limit': {
+    rate_limit_enabled: boolean;
+    rate_limit_requests_per_minute: number;
+  };
+}
+
+export interface UpdateSystemSettingsData {
+  maintenance_mode?: boolean;
+  api_version?: string;
+}
+
+export interface UpdateEmailSettingsData {
+  email_notifications_enabled?: boolean;
+  admin_alerts_enabled?: boolean;
+}
+
+export interface UpdateSecuritySettingsData {
+  session_timeout_minutes?: number;
+  require_2fa_for_admins?: boolean;
+}
+
+export interface UpdateRateLimitSettingsData {
+  rate_limit_enabled?: boolean;
+  rate_limit_requests_per_minute?: number;
+}
+
 export const adminApi = {
   // User Management
   getUsers: (query: UserListQuery = {}) =>
     apiClient.get<UserListResponse>('/admin/users', { params: query }),
 
-  getUserDetails: (userId: string) =>
-    apiClient.get<UserDetails>(`/admin/users/${userId}`),
+  getUserDetails: (userId: string) => apiClient.get<UserDetails>(`/admin/users/${userId}`),
 
-  createUser: (data: CreateUserData) =>
-    apiClient.post<AdminActionResponse>('/admin/users', data),
+  createUser: (data: CreateUserData) => apiClient.post<AdminActionResponse>('/admin/users', data),
 
   updateUser: (userId: string, data: UpdateUserData) =>
     apiClient.patch<AdminActionResponse>(`/admin/users/${userId}`, data),
@@ -349,22 +387,34 @@ export const adminApi = {
     apiClient.delete<any>(`/billing/admin/subscriptions/${subscriptionId}`, { params: data }),
 
   // Dashboard Metrics
-  getDashboardMetrics: () =>
-    apiClient.get<DashboardMetrics>('/admin/metrics/dashboard'),
+  getDashboardMetrics: () => apiClient.get<DashboardMetrics>('/admin/metrics/dashboard'),
 
   // Monitoring
-  getMonitoringData: () =>
-    apiClient.get<MonitoringData>('/admin/metrics/monitoring'),
+  getMonitoringData: () => apiClient.get<MonitoringData>('/admin/metrics/monitoring'),
 
   // Admin Logs
   getAdminLogs: (query: AdminLogsQuery = {}) =>
     apiClient.get<AdminLogsResponse>('/admin/logs', { params: query }),
 
-  getRecentAdminActivity: () =>
-    apiClient.get<{ logs: AdminLog[] }>('/admin/logs/recent'),
+  getRecentAdminActivity: () => apiClient.get<{ logs: AdminLog[] }>('/admin/logs/recent'),
 
-  getAdminLogStats: () =>
-    apiClient.get<{ stats: AdminLogStats }>('/admin/logs/stats'),
+  getAdminLogStats: () => apiClient.get<{ stats: AdminLogStats }>('/admin/logs/stats'),
+
+  // Settings Management
+  getAllSettings: () =>
+    apiClient.get<{ success: boolean; settings: SystemSettings }>('/admin/settings'),
+
+  updateSystemSettings: (data: UpdateSystemSettingsData) =>
+    apiClient.patch<{ success: boolean; message: string }>('/admin/settings/system', data),
+
+  updateEmailSettings: (data: UpdateEmailSettingsData) =>
+    apiClient.patch<{ success: boolean; message: string }>('/admin/settings/email', data),
+
+  updateSecuritySettings: (data: UpdateSecuritySettingsData) =>
+    apiClient.patch<{ success: boolean; message: string }>('/admin/settings/security', data),
+
+  updateRateLimitSettings: (data: UpdateRateLimitSettingsData) =>
+    apiClient.patch<{ success: boolean; message: string }>('/admin/settings/rate-limit', data),
 };
 
 export default adminApi;

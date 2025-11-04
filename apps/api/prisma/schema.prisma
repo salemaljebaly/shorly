@@ -197,3 +197,17 @@ enum SubscriptionStatus {
   TRIALING
   PAUSED
 }
+
+// ============= System Settings Model =============
+model SystemSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   // 'boolean', 'string', 'number'
+  category  String   // 'system', 'email', 'security', 'rate-limit'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@map("system_settings")
+}

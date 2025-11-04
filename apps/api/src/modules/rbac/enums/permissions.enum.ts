@@ -19,6 +19,10 @@ export enum Permission {
   SYSTEM_READ = 'system:read',
   SYSTEM_WRITE = 'system:write',
 
+  // Settings permissions
+  SETTINGS_READ = 'settings:read',
+  SETTINGS_WRITE = 'settings:write',
+
   // Role management
   ROLES_MANAGE = 'roles:manage',
 
@@ -61,17 +65,15 @@ export const PERMISSION_CATEGORIES = {
   },
   BILLING: {
     name: 'Billing Management',
-    permissions: [
-      Permission.BILLING_READ,
-      Permission.BILLING_WRITE,
-      Permission.BILLING_REFUND,
-    ],
+    permissions: [Permission.BILLING_READ, Permission.BILLING_WRITE, Permission.BILLING_REFUND],
   },
   SYSTEM: {
     name: 'System Administration',
     permissions: [
       Permission.SYSTEM_READ,
       Permission.SYSTEM_WRITE,
+      Permission.SETTINGS_READ,
+      Permission.SETTINGS_WRITE,
       Permission.ROLES_MANAGE,
     ],
   },
@@ -85,27 +87,15 @@ export const PERMISSION_CATEGORIES = {
   },
   CONTENT: {
     name: 'Content Management',
-    permissions: [
-      Permission.CONTENT_READ,
-      Permission.CONTENT_WRITE,
-      Permission.CONTENT_DELETE,
-    ],
+    permissions: [Permission.CONTENT_READ, Permission.CONTENT_WRITE, Permission.CONTENT_DELETE],
   },
   SUPPORT: {
     name: 'Support Management',
-    permissions: [
-      Permission.SUPPORT_READ,
-      Permission.SUPPORT_WRITE,
-      Permission.SUPPORT_DELETE,
-    ],
+    permissions: [Permission.SUPPORT_READ, Permission.SUPPORT_WRITE, Permission.SUPPORT_DELETE],
   },
   FAQ: {
     name: 'FAQ Management',
-    permissions: [
-      Permission.FAQ_READ,
-      Permission.FAQ_WRITE,
-      Permission.FAQ_DELETE,
-    ],
+    permissions: [Permission.FAQ_READ, Permission.FAQ_WRITE, Permission.FAQ_DELETE],
   },
 } as const;
 
@@ -114,7 +104,9 @@ export const PERMISSION_CATEGORIES = {
  * @param category The permission category
  * @returns Array of permissions in the category
  */
-export function getPermissionsInCategory(category: keyof typeof PERMISSION_CATEGORIES): Permission[] {
+export function getPermissionsInCategory(
+  category: keyof typeof PERMISSION_CATEGORIES
+): Permission[] {
   return [...PERMISSION_CATEGORIES[category].permissions];
 }
 

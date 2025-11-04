@@ -1,20 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Bell, Shield, Zap, Mail, Server } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { adminApi } from '@/lib/api/admin';
 
 export default function AdminSettingsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [fetchingSettings, setFetchingSettings] = useState(true);
 
   // System settings state
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -32,20 +40,58 @@ export default function AdminSettingsPage() {
   const [rateLimitEnabled, setRateLimitEnabled] = useState(true);
   const [requestsPerMinute, setRequestsPerMinute] = useState('100');
 
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await adminApi.getAllSettings();
+        const settings = response.data.settings;
+
+        // Set system settings
+        setMaintenanceMode(settings.system.maintenance_mode);
+        setApiVersion(settings.system.api_version);
+
+        // Set email settings
+        setEmailNotifications(settings.email.email_notifications_enabled);
+        setAdminAlerts(settings.email.admin_alerts_enabled);
+
+        // Set security settings
+        setSessionTimeout(String(settings.security.session_timeout_minutes));
+        setTwoFactorAuth(settings.security.require_2fa_for_admins);
+
+        // Set rate limit settings
+        setRateLimitEnabled(settings['rate-limit'].rate_limit_enabled);
+        setRequestsPerMinute(String(settings['rate-limit'].rate_limit_requests_per_minute));
+      } catch (error: any) {
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to load settings',
+          variant: 'destructive',
+        });
+      } finally {
+        setFetchingSettings(false);
+      }
+    };
+
+    fetchSettings();
+  }, [toast]);
+
   const handleSaveSystemSettings = async () => {
     setLoading(true);
     try {
-      // TODO: Implement API call to save settings
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
+      const response = await adminApi.updateSystemSettings({
+        maintenance_mode: maintenanceMode,
+        api_version: apiVersion,
+      });
 
       toast({
         title: 'Success',
-        description: 'System settings saved successfully',
+        description: response.data.message || 'System settings saved successfully',
       });
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save settings',
+        description: error.response?.data?.message || error.message || 'Failed to save settings',
         variant: 'destructive',
       });
     } finally {
@@ -56,16 +102,19 @@ export default function AdminSettingsPage() {
   const handleSaveEmailSettings = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await adminApi.updateEmailSettings({
+        email_notifications_enabled: emailNotifications,
+        admin_alerts_enabled: adminAlerts,
+      });
 
       toast({
         title: 'Success',
-        description: 'Email settings saved successfully',
+        description: response.data.message || 'Email settings saved successfully',
       });
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save settings',
+        description: error.response?.data?.message || error.message || 'Failed to save settings',
         variant: 'destructive',
       });
     } finally {
@@ -76,16 +125,19 @@ export default function AdminSettingsPage() {
   const handleSaveSecuritySettings = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await adminApi.updateSecuritySettings({
+        session_timeout_minutes: parseInt(sessionTimeout),
+        require_2fa_for_admins: twoFactorAuth,
+      });
 
       toast({
         title: 'Success',
-        description: 'Security settings saved successfully',
+        description: response.data.message || 'Security settings saved successfully',
       });
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save settings',
+        description: error.response?.data?.message || error.message || 'Failed to save settings',
         variant: 'destructive',
       });
     } finally {
@@ -96,16 +148,19 @@ export default function AdminSettingsPage() {
   const handleSaveRateLimitSettings = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await adminApi.updateRateLimitSettings({
+        rate_limit_enabled: rateLimitEnabled,
+        rate_limit_requests_per_minute: parseInt(requestsPerMinute),
+      });
 
       toast({
         title: 'Success',
-        description: 'Rate limiting settings saved successfully',
+        description: response.data.message || 'Rate limiting settings saved successfully',
       });
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save settings',
+        description: error.response?.data?.message || error.message || 'Failed to save settings',
         variant: 'destructive',
       });
     } finally {
@@ -113,13 +168,22 @@ export default function AdminSettingsPage() {
     }
   };
 
+  if (fetchingSettings) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Admin Settings</h1>
-        <p className="text-muted-foreground">
-          Configure system settings and preferences
-        </p>
+        <p className="text-muted-foreground">Configure system settings and preferences</p>
       </div>
 
       <Tabs defaultValue="system" className="space-y-4">
@@ -198,9 +262,7 @@ export default function AdminSettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Email Notification Settings</CardTitle>
-              <CardDescription>
-                Configure email notifications and alerts
-              </CardDescription>
+              <CardDescription>Configure email notifications and alerts</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
@@ -226,11 +288,7 @@ export default function AdminSettingsPage() {
                     Receive email alerts for critical system events
                   </p>
                 </div>
-                <Switch
-                  id="admin-alerts"
-                  checked={adminAlerts}
-                  onCheckedChange={setAdminAlerts}
-                />
+                <Switch id="admin-alerts" checked={adminAlerts} onCheckedChange={setAdminAlerts} />
               </div>
 
               <div className="flex justify-end">
@@ -247,9 +305,7 @@ export default function AdminSettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Security Settings</CardTitle>
-              <CardDescription>
-                Configure security and authentication settings
-              </CardDescription>
+              <CardDescription>Configure security and authentication settings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -297,9 +353,7 @@ export default function AdminSettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Rate Limiting Configuration</CardTitle>
-              <CardDescription>
-                Configure API rate limiting to prevent abuse
-              </CardDescription>
+              <CardDescription>Configure API rate limiting to prevent abuse</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
