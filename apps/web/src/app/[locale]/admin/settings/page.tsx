@@ -14,13 +14,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Zap, Server } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Shield, Zap, Server, CheckCircle2, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import { adminApi } from '@/lib/api/admin';
 
 export default function AdminSettingsPage() {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetchingSettings, setFetchingSettings] = useState(true);
 
@@ -53,10 +52,8 @@ export default function AdminSettingsPage() {
         setRateLimitEnabled(settings['rate-limit'].rate_limit_enabled);
         setRequestsPerMinute(String(settings['rate-limit'].rate_limit_requests_per_minute));
       } catch (error: any) {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to load settings',
-          variant: 'destructive',
+        toast.error('Failed to load settings', {
+          description: error.response?.data?.message || error.message,
         });
       } finally {
         setFetchingSettings(false);
@@ -64,7 +61,7 @@ export default function AdminSettingsPage() {
     };
 
     fetchSettings();
-  }, [toast]);
+  }, []);
 
   const handleSaveSystemSettings = async () => {
     setLoading(true);
@@ -74,15 +71,14 @@ export default function AdminSettingsPage() {
         api_version: apiVersion,
       });
 
-      toast({
-        title: 'Success',
-        description: response.data.message || 'System settings saved successfully',
+      toast.success('System settings saved', {
+        description: response.data.message || 'Settings have been updated successfully',
+        icon: <CheckCircle2 className="h-5 w-5" />,
       });
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || error.message || 'Failed to save settings',
-        variant: 'destructive',
+      toast.error('Failed to save settings', {
+        description: error.response?.data?.message || error.message || 'An error occurred',
+        icon: <XCircle className="h-5 w-5" />,
       });
     } finally {
       setLoading(false);
@@ -96,15 +92,14 @@ export default function AdminSettingsPage() {
         session_timeout_minutes: parseInt(sessionTimeout),
       });
 
-      toast({
-        title: 'Success',
-        description: response.data.message || 'Security settings saved successfully',
+      toast.success('Security settings saved', {
+        description: response.data.message || 'Settings have been updated successfully',
+        icon: <CheckCircle2 className="h-5 w-5" />,
       });
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || error.message || 'Failed to save settings',
-        variant: 'destructive',
+      toast.error('Failed to save settings', {
+        description: error.response?.data?.message || error.message || 'An error occurred',
+        icon: <XCircle className="h-5 w-5" />,
       });
     } finally {
       setLoading(false);
@@ -119,15 +114,14 @@ export default function AdminSettingsPage() {
         rate_limit_requests_per_minute: parseInt(requestsPerMinute),
       });
 
-      toast({
-        title: 'Success',
-        description: response.data.message || 'Rate limiting settings saved successfully',
+      toast.success('Rate limit settings saved', {
+        description: response.data.message || 'Settings have been updated successfully',
+        icon: <CheckCircle2 className="h-5 w-5" />,
       });
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || error.message || 'Failed to save settings',
-        variant: 'destructive',
+      toast.error('Failed to save settings', {
+        description: error.response?.data?.message || error.message || 'An error occurred',
+        icon: <XCircle className="h-5 w-5" />,
       });
     } finally {
       setLoading(false);
