@@ -2,10 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, Users, DollarSign, CreditCard } from 'lucide-react';
-import { SubscriptionMetrics } from '@/lib/api/admin';
+import type { SubscriptionMetrics as SubscriptionMetricsData } from '@/lib/api/admin';
 
 interface SubscriptionMetricsProps {
-  metrics: SubscriptionMetrics;
+  metrics: SubscriptionMetricsData;
 }
 
 export function SubscriptionMetrics({ metrics }: SubscriptionMetricsProps) {
@@ -52,16 +52,12 @@ export function SubscriptionMetrics({ metrics }: SubscriptionMetricsProps) {
       {cards.map((card) => (
         <Card key={card.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {card.title}
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
             <card.icon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{card.value}</div>
-            <p className="text-xs text-muted-foreground">
-              {card.description}
-            </p>
+            <p className="text-xs text-muted-foreground">{card.description}</p>
           </CardContent>
         </Card>
       ))}
@@ -73,19 +69,19 @@ export function SubscriptionMetrics({ metrics }: SubscriptionMetricsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {metrics.subscriptionsByPlan && Object.entries(metrics.subscriptionsByPlan).map(([plan, count]) => (
-              <div key={plan} className="flex justify-between items-center">
-                <span className="text-sm font-medium">{plan}</span>
-                <span className="text-sm text-muted-foreground">
-                  {formatNumber(count)} subscriptions
-                </span>
-              </div>
-            ))}
-            {!metrics.subscriptionsByPlan || Object.keys(metrics.subscriptionsByPlan).length === 0 && (
-              <div className="text-sm text-muted-foreground">
-                No subscription data available
-              </div>
-            )}
+            {metrics.subscriptionsByPlan &&
+              Object.entries(metrics.subscriptionsByPlan).map(([plan, count]) => (
+                <div key={plan} className="flex justify-between items-center">
+                  <span className="text-sm font-medium">{plan}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {formatNumber(count)} subscriptions
+                  </span>
+                </div>
+              ))}
+            {!metrics.subscriptionsByPlan ||
+              (Object.keys(metrics.subscriptionsByPlan).length === 0 && (
+                <div className="text-sm text-muted-foreground">No subscription data available</div>
+              ))}
           </div>
         </CardContent>
       </Card>
@@ -97,19 +93,19 @@ export function SubscriptionMetrics({ metrics }: SubscriptionMetricsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {metrics.subscriptionsByStatus && Object.entries(metrics.subscriptionsByStatus).map(([status, count]) => (
-              <div key={status} className="flex justify-between items-center">
-                <span className="text-sm font-medium">{status}</span>
-                <span className="text-sm text-muted-foreground">
-                  {formatNumber(count)} subscriptions
-                </span>
-              </div>
-            ))}
-            {!metrics.subscriptionsByStatus || Object.keys(metrics.subscriptionsByStatus).length === 0 && (
-              <div className="text-sm text-muted-foreground">
-                No subscription data available
-              </div>
-            )}
+            {metrics.subscriptionsByStatus &&
+              Object.entries(metrics.subscriptionsByStatus).map(([status, count]) => (
+                <div key={status} className="flex justify-between items-center">
+                  <span className="text-sm font-medium">{status}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {formatNumber(count)} subscriptions
+                  </span>
+                </div>
+              ))}
+            {!metrics.subscriptionsByStatus ||
+              (Object.keys(metrics.subscriptionsByStatus).length === 0 && (
+                <div className="text-sm text-muted-foreground">No subscription data available</div>
+              ))}
           </div>
         </CardContent>
       </Card>

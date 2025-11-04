@@ -31,12 +31,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   MoreHorizontal,
   Eye,
-  CreditCard,
   X,
   Search,
   ChevronLeft,
   ChevronRight,
-  ArrowUpDown
+  ArrowUpDown,
 } from 'lucide-react';
 import { adminApi, Subscription, SubscriptionListQuery } from '@/lib/api/admin';
 import { useToast } from '@/hooks/use-toast';
@@ -77,13 +76,14 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
       const response = await adminApi.getSubscriptions(filters);
       // Handle different response structures
       const data = response.data.data || response.data || [];
-      const pagination = response.data.pagination || response.pagination || {};
+      const pagination = response.data.pagination || {};
       setSubscriptions(Array.isArray(data) ? data : []);
       setPagination(pagination);
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch subscriptions';
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to fetch subscriptions',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -107,22 +107,22 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     if (value.length >= 2 || value.length === 0) {
-      setFilters(prev => ({ ...prev, search: value || undefined, page: 1 }));
+      setFilters((prev) => ({ ...prev, search: value || undefined, page: 1 }));
     }
   };
 
-  const handleFilterChange = (key: keyof SubscriptionListQuery, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+  const handleFilterChange = (key: keyof SubscriptionListQuery, value: string | number) => {
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
   };
 
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
+    setFilters((prev) => ({ ...prev, page }));
   };
 
   const handleSort = (sortBy: string) => {
     const currentOrder = filters.sortOrder || 'DESC';
     const newOrder = currentOrder === 'DESC' ? 'ASC' : 'DESC';
-    setFilters(prev => ({ ...prev, sortBy: sortBy as any, sortOrder: newOrder as any }));
+    setFilters((prev) => ({ ...prev, sortBy, sortOrder: newOrder }));
   };
 
   const handleCancelSubscription = (subscription: Subscription) => {
@@ -218,7 +218,9 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
           <div className="flex items-center space-x-2">
             <Select
               value={filters.status || 'all'}
-              onValueChange={(value) => handleFilterChange('status', value === 'all' ? undefined : value)}
+              onValueChange={(value) =>
+                handleFilterChange('status', value === 'all' ? undefined : value)
+              }
             >
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Status" />
@@ -235,7 +237,9 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
             </Select>
             <Select
               value={filters.plan || 'all'}
-              onValueChange={(value) => handleFilterChange('plan', value === 'all' ? undefined : value)}
+              onValueChange={(value) =>
+                handleFilterChange('plan', value === 'all' ? undefined : value)
+              }
             >
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="Plan" />
@@ -304,9 +308,7 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
                         {subscription.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      {formatDate(subscription.createdAt)}
-                    </TableCell>
+                    <TableCell>{formatDate(subscription.createdAt)}</TableCell>
                     <TableCell>
                       <div className="text-sm">
                         {subscription.currentPeriodStart && subscription.currentPeriodEnd ? (
@@ -320,9 +322,7 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
                           'N/A'
                         )}
                         {subscription.cancelAtPeriodEnd && (
-                          <div className="text-xs text-orange-600 mt-1">
-                            Cancels at period end
-                          </div>
+                          <div className="text-xs text-orange-600 mt-1">Cancels at period end</div>
                         )}
                       </div>
                     </TableCell>
@@ -351,7 +351,10 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleCancelSubscription(subscription)}
-                            disabled={subscription.status === 'CANCELED' || subscription.status === 'INACTIVE'}
+                            disabled={
+                              subscription.status === 'CANCELED' ||
+                              subscription.status === 'INACTIVE'
+                            }
                           >
                             <X className="mr-2 h-4 w-4" />
                             Cancel Subscription
@@ -370,7 +373,7 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Showing {((pagination.page - 1) * pagination.pageSize) + 1} to{' '}
+              Showing {(pagination.page - 1) * pagination.pageSize + 1} to{' '}
               {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{' '}
               {pagination.total} results
             </div>
