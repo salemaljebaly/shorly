@@ -111,7 +111,10 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
     }
   };
 
-  const handleFilterChange = (key: keyof SubscriptionListQuery, value: string | number) => {
+  const handleFilterChange = (
+    key: keyof SubscriptionListQuery,
+    value: string | number | undefined
+  ) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
   };
 
@@ -119,7 +122,7 @@ export function SubscriptionsTable({ onSubscriptionCancelled }: SubscriptionsTab
     setFilters((prev) => ({ ...prev, page }));
   };
 
-  const handleSort = (sortBy: string) => {
+  const handleSort = (sortBy: 'createdAt' | 'currentPeriodStart' | 'plan' | 'status') => {
     const currentOrder = filters.sortOrder || 'DESC';
     const newOrder = currentOrder === 'DESC' ? 'ASC' : 'DESC';
     setFilters((prev) => ({ ...prev, sortBy, sortOrder: newOrder }));
