@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AdminService } from './admin.service';
 import { PrismaClient, SubscriptionPlan } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
-import { AdminLoggingService, AdminLogAction, AdminLogTargetType } from '../rbac/admin-logging.service';
+import {
+  AdminLoggingService,
+  AdminLogAction,
+  AdminLogTargetType,
+} from '../rbac/admin-logging.service';
 import * as bcrypt from 'bcrypt';
 import { GetUsersQueryDto, UserPlan, UserStatus, SortOrder } from './dto/get-users-query.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -69,7 +73,6 @@ describe('AdminService', () => {
     prisma = module.get<PrismaClient>(PrismaClient);
     jwtService = module.get<JwtService>(JwtService);
     adminLoggingService = module.get<AdminLoggingService>(AdminLoggingService);
-
   });
 
   afterEach(() => {
@@ -122,9 +125,7 @@ describe('AdminService', () => {
         pageSize: 10,
       };
 
-      mockPrisma.$queryRawUnsafe
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ total: 0 }]);
+      mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([]).mockResolvedValueOnce([{ total: 0 }]);
 
       await service.getUserList(query, 'admin123');
 
@@ -147,9 +148,7 @@ describe('AdminService', () => {
         pageSize: 10,
       };
 
-      mockPrisma.$queryRawUnsafe
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ total: 0 }]);
+      mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([]).mockResolvedValueOnce([{ total: 0 }]);
 
       await service.getUserList(query, 'admin123');
 
@@ -165,9 +164,7 @@ describe('AdminService', () => {
         pageSize: 10,
       };
 
-      mockPrisma.$queryRawUnsafe
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ total: 0 }]);
+      mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([]).mockResolvedValueOnce([{ total: 0 }]);
 
       await service.getUserList(query, 'admin123');
 
@@ -181,9 +178,7 @@ describe('AdminService', () => {
         pageSize: 200,
       };
 
-      mockPrisma.$queryRawUnsafe
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ total: 0 }]);
+      mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([]).mockResolvedValueOnce([{ total: 0 }]);
 
       await service.getUserList(query, 'admin123');
 
@@ -263,7 +258,9 @@ describe('AdminService', () => {
         password: 'Password123',
       };
 
-      await expect(service.createUser(createDto, 'admin123')).rejects.toThrow('Email already exists');
+      await expect(service.createUser(createDto, 'admin123')).rejects.toThrow(
+        'Email already exists'
+      );
     });
 
     it('should throw when default role is missing', async () => {
@@ -277,7 +274,9 @@ describe('AdminService', () => {
         password: 'Password123',
       };
 
-      await expect(service.createUser(createDto, 'admin123')).rejects.toThrow('Requested role is not configured');
+      await expect(service.createUser(createDto, 'admin123')).rejects.toThrow(
+        'Requested role is not configured'
+      );
     });
 
     it('should require super admin to assign elevated roles', async () => {
@@ -291,7 +290,9 @@ describe('AdminService', () => {
         .mockResolvedValueOnce(null) // user check
         .mockResolvedValueOnce({ id: 'admin456', role: { name: 'ADMIN' } }); // requesting admin
 
-      await expect(service.createUser(createDto, 'admin456')).rejects.toThrow('Only super admins can assign elevated roles');
+      await expect(service.createUser(createDto, 'admin456')).rejects.toThrow(
+        'Only super admins can assign elevated roles'
+      );
     });
   });
 
@@ -307,8 +308,12 @@ describe('AdminService', () => {
         suspendedAt: null,
       };
 
-      const mockStats = [{ total_links: 10, total_onelinks: 5, total_clicks: 100, total_qr_codes: 2 }];
-      const mockCurrentMonthUsage = [{ links_this_month: 2, onelinks_this_month: 1, clicks_this_month: 20 }];
+      const mockStats = [
+        { total_links: 10, total_onelinks: 5, total_clicks: 100, total_qr_codes: 2 },
+      ];
+      const mockCurrentMonthUsage = [
+        { links_this_month: 2, onelinks_this_month: 1, clicks_this_month: 20 },
+      ];
       const mockRecentActivity = [
         { type: 'LINK_CREATED', timestamp: '2025-01-20T10:00:00Z', details: { linkId: 'link1' } },
       ];
@@ -331,8 +336,9 @@ describe('AdminService', () => {
     it('should throw NotFoundException when user not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.getUserDetails('nonexistent', 'admin123'))
-        .rejects.toThrow('User not found');
+      await expect(service.getUserDetails('nonexistent', 'admin123')).rejects.toThrow(
+        'User not found'
+      );
     });
   });
 
@@ -431,8 +437,9 @@ describe('AdminService', () => {
         .mockResolvedValueOnce(existingUser)
         .mockResolvedValueOnce({ id: 'admin456', role: { name: 'ADMIN' } });
 
-      await expect(service.updateUser(userId, updateData, 'admin456'))
-        .rejects.toThrow('Only super admins can change user roles');
+      await expect(service.updateUser(userId, updateData, 'admin456')).rejects.toThrow(
+        'Only super admins can change user roles'
+      );
     });
 
     it('should throw ConflictException when email already exists', async () => {
@@ -450,15 +457,17 @@ describe('AdminService', () => {
         .mockResolvedValueOnce(existingUser)
         .mockResolvedValueOnce({ id: 'other', email: 'existing@example.com' });
 
-      await expect(service.updateUser(userId, updateData, 'admin123'))
-        .rejects.toThrow('Email already exists');
+      await expect(service.updateUser(userId, updateData, 'admin123')).rejects.toThrow(
+        'Email already exists'
+      );
     });
 
     it('should throw NotFoundException when user not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.updateUser('nonexistent', {}, 'admin123'))
-        .rejects.toThrow('User not found');
+      await expect(service.updateUser('nonexistent', {}, 'admin123')).rejects.toThrow(
+        'User not found'
+      );
     });
   });
 
@@ -515,15 +524,17 @@ describe('AdminService', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      await expect(service.suspendUser(userId, suspendData, 'admin123'))
-        .rejects.toThrow('User is already suspended');
+      await expect(service.suspendUser(userId, suspendData, 'admin123')).rejects.toThrow(
+        'User is already suspended'
+      );
     });
 
     it('should throw NotFoundException when user not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.suspendUser('nonexistent', {} as any, 'admin123'))
-        .rejects.toThrow('User not found');
+      await expect(service.suspendUser('nonexistent', {} as any, 'admin123')).rejects.toThrow(
+        'User not found'
+      );
     });
   });
 
@@ -573,8 +584,9 @@ describe('AdminService', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      await expect(service.activateUser(userId, {}, 'admin123'))
-        .rejects.toThrow('User is not suspended');
+      await expect(service.activateUser(userId, {}, 'admin123')).rejects.toThrow(
+        'User is not suspended'
+      );
     });
   });
 
@@ -629,8 +641,9 @@ describe('AdminService', () => {
         reason: 'Test',
       };
 
-      await expect(service.deleteUser('user123', deleteData, 'admin123'))
-        .rejects.toThrow('Confirmation text must be "DELETE"');
+      await expect(service.deleteUser('user123', deleteData, 'admin123')).rejects.toThrow(
+        'Confirmation text must be "DELETE"'
+      );
     });
 
     it('should throw BadRequestException when trying to delete self', async () => {
@@ -639,8 +652,9 @@ describe('AdminService', () => {
         reason: 'Test',
       };
 
-      await expect(service.deleteUser('admin123', deleteData, 'admin123'))
-        .rejects.toThrow('Cannot delete your own account');
+      await expect(service.deleteUser('admin123', deleteData, 'admin123')).rejects.toThrow(
+        'Cannot delete your own account'
+      );
     });
   });
 
@@ -665,13 +679,15 @@ describe('AdminService', () => {
       expect(result.expiresIn).toBe(900);
       expect(result.targetUser.id).toBe(userId);
       expect(result.targetUser.email).toBe('user@example.com');
-      expect(mockJwtService.sign).toHaveBeenCalledWith({
-        sub: userId,
-        email: 'user@example.com',
-        isImpersonation: true,
-        adminId: 'admin123',
-        exp: expect.any(Number),
-      });
+      expect(mockJwtService.sign).toHaveBeenCalledWith(
+        {
+          sub: userId,
+          email: 'user@example.com',
+          isImpersonation: true,
+          adminId: 'admin123',
+        },
+        { expiresIn: '15m' }
+      );
       expect(adminLoggingService.logAction).toHaveBeenCalledWith({
         adminId: 'admin123',
         action: AdminLogAction.IMPERSONATE_USER,
@@ -693,8 +709,9 @@ describe('AdminService', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      await expect(service.impersonateUser('admin123', 'admin123'))
-        .rejects.toThrow('Cannot impersonate admin users');
+      await expect(service.impersonateUser('admin123', 'admin123')).rejects.toThrow(
+        'Cannot impersonate admin users'
+      );
     });
 
     it('should throw BadRequestException when user is suspended', async () => {
@@ -706,8 +723,9 @@ describe('AdminService', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      await expect(service.impersonateUser('user123', 'admin123'))
-        .rejects.toThrow('Cannot impersonate inactive or suspended user');
+      await expect(service.impersonateUser('user123', 'admin123')).rejects.toThrow(
+        'Cannot impersonate inactive or suspended user'
+      );
     });
   });
 
