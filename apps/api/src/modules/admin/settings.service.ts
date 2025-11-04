@@ -41,6 +41,7 @@ export class SettingsService {
         });
 
         if (!existing) {
+          // Create with default value
           await this.prisma.systemSettings.create({
             data: {
               key: setting.key,
@@ -49,10 +50,18 @@ export class SettingsService {
               category: setting.category,
             },
           });
+          // Cache the default value only when creating new setting
+          this.settingsCache.set(setting.key, setting);
+        } else {
+          // Load and cache the actual value from database
+          const actualValue = this.parseSettingValue(existing.value, existing.type as any);
+          this.settingsCache.set(setting.key, {
+            key: existing.key,
+            value: actualValue,
+            type: existing.type as any,
+            category: existing.category as any,
+          });
         }
-
-        // Cache the setting
-        this.settingsCache.set(setting.key, setting);
       } catch (error) {
         this.logger.error(`Failed to initialize setting ${setting.key}:`, error);
       }

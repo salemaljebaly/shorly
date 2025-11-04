@@ -3,12 +3,13 @@ import {
   CanActivate,
   ExecutionContext,
   ServiceUnavailableException,
+  SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SettingsService } from '../settings.service';
 
 export const SKIP_MAINTENANCE = 'skipMaintenance';
-export const SkipMaintenance = () => Reflect.metadata(SKIP_MAINTENANCE, true);
+export const SkipMaintenance = () => SetMetadata(SKIP_MAINTENANCE, true);
 
 /**
  * Guard to check if the system is in maintenance mode
