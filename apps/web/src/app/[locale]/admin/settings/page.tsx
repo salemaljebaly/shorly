@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Bell, Shield, Zap, Mail, Server } from 'lucide-react';
+import { Shield, Zap, Server } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { adminApi } from '@/lib/api/admin';
@@ -28,13 +28,8 @@ export default function AdminSettingsPage() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [apiVersion, setApiVersion] = useState('v1');
 
-  // Email settings state
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [adminAlerts, setAdminAlerts] = useState(true);
-
   // Security settings state
   const [sessionTimeout, setSessionTimeout] = useState('30');
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
 
   // Rate limiting state
   const [rateLimitEnabled, setRateLimitEnabled] = useState(true);
@@ -51,13 +46,8 @@ export default function AdminSettingsPage() {
         setMaintenanceMode(settings.system.maintenance_mode);
         setApiVersion(settings.system.api_version);
 
-        // Set email settings
-        setEmailNotifications(settings.email.email_notifications_enabled);
-        setAdminAlerts(settings.email.admin_alerts_enabled);
-
         // Set security settings
         setSessionTimeout(String(settings.security.session_timeout_minutes));
-        setTwoFactorAuth(settings.security.require_2fa_for_admins);
 
         // Set rate limit settings
         setRateLimitEnabled(settings['rate-limit'].rate_limit_enabled);
@@ -99,35 +89,11 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const handleSaveEmailSettings = async () => {
-    setLoading(true);
-    try {
-      const response = await adminApi.updateEmailSettings({
-        email_notifications_enabled: emailNotifications,
-        admin_alerts_enabled: adminAlerts,
-      });
-
-      toast({
-        title: 'Success',
-        description: response.data.message || 'Email settings saved successfully',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || error.message || 'Failed to save settings',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSaveSecuritySettings = async () => {
     setLoading(true);
     try {
       const response = await adminApi.updateSecuritySettings({
         session_timeout_minutes: parseInt(sessionTimeout),
-        require_2fa_for_admins: twoFactorAuth,
       });
 
       toast({
@@ -187,14 +153,10 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs defaultValue="system" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto">
           <TabsTrigger value="system">
             <Server className="mr-2 h-4 w-4" />
             System
-          </TabsTrigger>
-          <TabsTrigger value="email">
-            <Mail className="mr-2 h-4 w-4" />
-            Email
           </TabsTrigger>
           <TabsTrigger value="security">
             <Shield className="mr-2 h-4 w-4" />
@@ -257,49 +219,6 @@ export default function AdminSettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Email Settings Tab */}
-        <TabsContent value="email" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Email Notification Settings</CardTitle>
-              <CardDescription>Configure email notifications and alerts</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="email-notifications">User Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Send email notifications to users for important events
-                  </p>
-                </div>
-                <Switch
-                  id="email-notifications"
-                  checked={emailNotifications}
-                  onCheckedChange={setEmailNotifications}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="admin-alerts">Admin Alerts</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receive email alerts for critical system events
-                  </p>
-                </div>
-                <Switch id="admin-alerts" checked={adminAlerts} onCheckedChange={setAdminAlerts} />
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={handleSaveEmailSettings} disabled={loading}>
-                  {loading ? 'Saving...' : 'Save Email Settings'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Security Settings Tab */}
         <TabsContent value="security" className="space-y-4">
           <Card>
@@ -321,22 +240,6 @@ export default function AdminSettingsPage() {
                 <p className="text-sm text-muted-foreground">
                   Users will be logged out after this period of inactivity
                 </p>
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="two-factor-auth">Require 2FA for Admins</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enforce two-factor authentication for all admin accounts
-                  </p>
-                </div>
-                <Switch
-                  id="two-factor-auth"
-                  checked={twoFactorAuth}
-                  onCheckedChange={setTwoFactorAuth}
-                />
               </div>
 
               <div className="flex justify-end">

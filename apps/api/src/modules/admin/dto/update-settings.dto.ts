@@ -15,20 +15,6 @@ export class UpdateSystemSettingsDto {
   api_version?: string;
 }
 
-export class UpdateEmailSettingsDto {
-  @ApiProperty({ required: false, description: 'Enable or disable email notifications' })
-  @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
-  email_notifications_enabled?: boolean;
-
-  @ApiProperty({ required: false, description: 'Enable or disable admin alerts' })
-  @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
-  admin_alerts_enabled?: boolean;
-}
-
 export class UpdateSecuritySettingsDto {
   @ApiProperty({
     required: false,
@@ -42,12 +28,6 @@ export class UpdateSecuritySettingsDto {
   @Min(5)
   @Max(1440)
   session_timeout_minutes?: number;
-
-  @ApiProperty({ required: false, description: 'Require 2FA for admin accounts' })
-  @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
-  require_2fa_for_admins?: boolean;
 }
 
 export class UpdateRateLimitSettingsDto {

@@ -26,13 +26,8 @@ export class SettingsService {
       { key: 'maintenance_mode', value: false, type: 'boolean', category: 'system' },
       { key: 'api_version', value: 'v1', type: 'string', category: 'system' },
 
-      // Email settings
-      { key: 'email_notifications_enabled', value: true, type: 'boolean', category: 'email' },
-      { key: 'admin_alerts_enabled', value: true, type: 'boolean', category: 'email' },
-
       // Security settings
       { key: 'session_timeout_minutes', value: 30, type: 'number', category: 'security' },
-      { key: 'require_2fa_for_admins', value: false, type: 'boolean', category: 'security' },
 
       // Rate limiting settings
       { key: 'rate_limit_enabled', value: true, type: 'boolean', category: 'rate-limit' },

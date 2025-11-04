@@ -13,7 +13,6 @@ import {
 import { SkipMaintenance } from './guards/maintenance.guard';
 import {
   UpdateSystemSettingsDto,
-  UpdateEmailSettingsDto,
   UpdateSecuritySettingsDto,
   UpdateRateLimitSettingsDto,
 } from './dto/update-settings.dto';
@@ -86,38 +85,6 @@ export class SettingsController {
     return {
       success: true,
       message: 'System settings updated successfully',
-    };
-  }
-
-  /**
-   * Update email settings
-   */
-  @Patch('email')
-  @ApiOperation({ summary: 'Update email settings' })
-  @ApiResponse({ status: 200, description: 'Email settings updated successfully' })
-  @RequirePermissions(Permission.SETTINGS_WRITE)
-  async updateEmailSettings(@Body() dto: UpdateEmailSettingsDto, @Request() req: any) {
-    const adminId = req.user.sub;
-
-    const currentSettings = await this.settingsService.getAllSettings();
-
-    await this.settingsService.updateSettings(dto);
-
-    await this.adminLoggingService.logAction({
-      adminId,
-      action: AdminLogAction.EDIT_SETTINGS,
-      targetType: AdminLogTargetType.CONTENT,
-      targetId: 'email',
-      metadata: {
-        category: 'email',
-        before: currentSettings.email,
-        after: dto,
-      },
-    });
-
-    return {
-      success: true,
-      message: 'Email settings updated successfully',
     };
   }
 

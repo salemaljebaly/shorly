@@ -315,13 +315,8 @@ export interface SystemSettings {
     maintenance_mode: boolean;
     api_version: string;
   };
-  email: {
-    email_notifications_enabled: boolean;
-    admin_alerts_enabled: boolean;
-  };
   security: {
     session_timeout_minutes: number;
-    require_2fa_for_admins: boolean;
   };
   'rate-limit': {
     rate_limit_enabled: boolean;
@@ -334,14 +329,8 @@ export interface UpdateSystemSettingsData {
   api_version?: string;
 }
 
-export interface UpdateEmailSettingsData {
-  email_notifications_enabled?: boolean;
-  admin_alerts_enabled?: boolean;
-}
-
 export interface UpdateSecuritySettingsData {
   session_timeout_minutes?: number;
-  require_2fa_for_admins?: boolean;
 }
 
 export interface UpdateRateLimitSettingsData {
@@ -406,9 +395,6 @@ export const adminApi = {
 
   updateSystemSettings: (data: UpdateSystemSettingsData) =>
     apiClient.patch<{ success: boolean; message: string }>('/admin/settings/system', data),
-
-  updateEmailSettings: (data: UpdateEmailSettingsData) =>
-    apiClient.patch<{ success: boolean; message: string }>('/admin/settings/email', data),
 
   updateSecuritySettings: (data: UpdateSecuritySettingsData) =>
     apiClient.patch<{ success: boolean; message: string }>('/admin/settings/security', data),
