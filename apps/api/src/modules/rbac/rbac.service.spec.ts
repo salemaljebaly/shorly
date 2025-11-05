@@ -127,10 +127,9 @@ describe('RbacService', () => {
       const permission = Permission.USERS_READ;
 
       jest.spyOn(service, 'getUserRole').mockResolvedValue(Role.ADMIN);
-      jest.spyOn(service, 'getRolePermissions').mockResolvedValue([
-        Permission.USERS_READ,
-        Permission.USERS_WRITE,
-      ]);
+      jest
+        .spyOn(service, 'getRolePermissions')
+        .mockResolvedValue([Permission.USERS_READ, Permission.USERS_WRITE]);
 
       const result = await service.hasPermission(userId, permission);
 
@@ -142,10 +141,9 @@ describe('RbacService', () => {
       const permission = Permission.USERS_DELETE;
 
       jest.spyOn(service, 'getUserRole').mockResolvedValue(Role.SUPERVISOR);
-      jest.spyOn(service, 'getRolePermissions').mockResolvedValue([
-        Permission.USERS_READ,
-        Permission.BILLING_READ,
-      ]);
+      jest
+        .spyOn(service, 'getRolePermissions')
+        .mockResolvedValue([Permission.USERS_READ, Permission.BILLING_READ]);
 
       const result = await service.hasPermission(userId, permission);
 
@@ -197,6 +195,17 @@ describe('RbacService', () => {
 
       expect(result).toBe(true);
     });
+
+    it('should return false and log error on exception', async () => {
+      const userId = 'user123';
+      const permissions = [Permission.USERS_READ];
+
+      jest.spyOn(service, 'getUserRole').mockRejectedValue(new Error('Service error'));
+
+      const result = await service.hasAnyPermission(userId, permissions);
+
+      expect(result).toBe(false);
+    });
   });
 
   describe('hasAllPermissions', () => {
@@ -205,11 +214,13 @@ describe('RbacService', () => {
       const permissions = [Permission.USERS_READ, Permission.USERS_WRITE];
 
       jest.spyOn(service, 'getUserRole').mockResolvedValue(Role.ADMIN);
-      jest.spyOn(service, 'getRolePermissions').mockResolvedValue([
-        Permission.USERS_READ,
-        Permission.USERS_WRITE,
-        Permission.USERS_DELETE,
-      ]);
+      jest
+        .spyOn(service, 'getRolePermissions')
+        .mockResolvedValue([
+          Permission.USERS_READ,
+          Permission.USERS_WRITE,
+          Permission.USERS_DELETE,
+        ]);
 
       const result = await service.hasAllPermissions(userId, permissions);
 
@@ -235,6 +246,17 @@ describe('RbacService', () => {
       const result = await service.hasAllPermissions(userId, permissions);
 
       expect(result).toBe(true);
+    });
+
+    it('should return false and log error on exception', async () => {
+      const userId = 'user123';
+      const permissions = [Permission.USERS_READ];
+
+      jest.spyOn(service, 'getUserRole').mockRejectedValue(new Error('Service error'));
+
+      const result = await service.hasAllPermissions(userId, permissions);
+
+      expect(result).toBe(false);
     });
   });
 
@@ -345,6 +367,16 @@ describe('RbacService', () => {
 
       expect(result).toBe(true);
     });
+
+    it('should return false and log error on exception', async () => {
+      const userId = 'user123';
+
+      jest.spyOn(service, 'getUserRole').mockRejectedValue(new Error('Service error'));
+
+      const result = await service.hasMinimumRole(userId, Role.ADMIN);
+
+      expect(result).toBe(false);
+    });
   });
 
   describe('hasAnyRole', () => {
@@ -377,6 +409,17 @@ describe('RbacService', () => {
       const result = await service.hasAnyRole(userId, roles);
 
       expect(result).toBe(true);
+    });
+
+    it('should return false and log error on exception', async () => {
+      const userId = 'user123';
+      const roles = [Role.ADMIN];
+
+      jest.spyOn(service, 'getUserRole').mockRejectedValue(new Error('Service error'));
+
+      const result = await service.hasAnyRole(userId, roles);
+
+      expect(result).toBe(false);
     });
   });
 
