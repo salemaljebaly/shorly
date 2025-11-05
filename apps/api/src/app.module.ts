@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './config/prisma.module';
 import { RedisModule } from './config/redis.module';
@@ -14,6 +14,11 @@ import { HealthModule } from './modules/health/health.module';
 import { AppController } from './app.controller';
 import { AppHttpSetupService } from './app-http-setup.service';
 import { UsersModule } from './modules/users/users.module';
+import { RbacModule } from './modules/rbac/rbac.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { MaintenanceGuard } from './modules/admin/guards/maintenance.guard';
+import { DynamicRateLimitGuard } from './modules/admin/guards/dynamic-rate-limit.guard';
 
 @Module({
   imports: [
@@ -37,8 +42,15 @@ import { UsersModule } from './modules/users/users.module';
     QrModule,
     RedirectModule,
     UsersModule,
+    RbacModule,
+    AdminModule,
+    BillingModule,
   ],
   controllers: [AppController],
-  providers: [AppHttpSetupService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    AppHttpSetupService,
+    { provide: APP_GUARD, useClass: MaintenanceGuard },
+    { provide: APP_GUARD, useClass: DynamicRateLimitGuard },
+  ],
 })
 export class AppModule {}

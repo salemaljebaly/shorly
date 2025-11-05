@@ -21,6 +21,7 @@ export class PrismaModule implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     await this.prisma.$connect();
     if (process.env.NODE_ENV !== 'test') {
+      // eslint-disable-next-line no-console
       console.log('✅ Database connected');
     }
   }

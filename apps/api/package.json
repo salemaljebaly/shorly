@@ -19,7 +19,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "admin:create-super-admin": "ts-node scripts/assign-super-admin.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
@@ -42,7 +43,8 @@
     "passport-jwt": "^4.0.1",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "stripe": "^19.1.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
@@ -92,13 +94,18 @@
       "!**/*.module.ts",
       "!**/*.dto.ts",
       "!**/*.controller.ts",
+      "!**/*.enum.ts",
       "!**/main.ts",
       "!**/app-info.ts",
       "!**/app-http-setup.service.ts",
       "!**/config/**",
       "!**/decorators/**",
       "!**/guards/**",
-      "!**/strategies/**"
+      "!**/strategies/**",
+      "!**/interceptors/**",
+      "!**/settings.service.ts",
+      "!**/billing.service.ts",
+      "!**/stripe.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",

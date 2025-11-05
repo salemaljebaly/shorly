@@ -26,6 +26,9 @@ export class AuthService {
         password: hashedPassword,
         name,
       },
+      include: {
+        role: true, // Include role information
+      },
     });
 
     const payload = {
@@ -55,14 +58,24 @@ export class AuthService {
     });
 
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role?.name, // Include role name
+      },
       accessToken,
       refreshToken,
     };
   }
 
   async login(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: {
+        role: true, // Include role information
+      },
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -99,14 +112,24 @@ export class AuthService {
     });
 
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role?.name, // Include role name
+      },
       accessToken,
       refreshToken,
     };
   }
 
   async validateUser(userId: string) {
-    return await this.prisma.user.findUnique({ where: { id: userId } });
+    return await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true, // Include role information for JWT validation
+      },
+    });
   }
 
   async refreshAccessToken(refreshToken: string) {
@@ -175,7 +198,7 @@ export class AuthService {
         accessToken,
         refreshToken: newRefreshToken,
       };
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }

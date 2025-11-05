@@ -170,6 +170,7 @@ export class UsersService {
     // TODO: Send email with reset link
     // For now, just return the token for testing (remove in production)
     if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
       console.log(`Reset token for ${user.email}: ${resetToken}`);
     }
 

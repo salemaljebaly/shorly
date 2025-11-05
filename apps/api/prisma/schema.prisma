@@ -9,33 +9,65 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============= Role Model =============
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique // SUPER_ADMIN, ADMIN, SUPERVISOR, USER
+  description String?
+  permissions Json // Array of permission strings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@map("roles")
+}
+
 // ============= User Model =============
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  name          String?
-  password      String
-  apiKey        String?  @unique
-  refreshToken  String?  @unique
-  avatar        String?
-  bio           String?
-  location      String?
-  website       String?
-  timezone      String?  @default("UTC")
-  language      String?  @default("en")
-  emailNotifications Boolean @default(true)
-  analyticsTracking   Boolean @default(true)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                 String           @id @default(cuid())
+  email              String           @unique
+  name               String?
+  password           String
+  apiKey             String?          @unique
+  refreshToken       String?          @unique
+  avatar             String?
+  bio                String?
+  location           String?
+  website            String?
+  timezone           String?          @default("UTC")
+  language           String?          @default("en")
+  emailNotifications Boolean          @default(true)
+  analyticsTracking  Boolean          @default(true)
+  isActive           Boolean          @default(true)
+  plan               SubscriptionPlan @default(FREE)
 
-  links    Link[]
-  oneLinks OneLink[]
+  // RBAC fields
+  roleId           String? // Foreign key to roles table
+  role             Role?     @relation(fields: [roleId], references: [id])
+  suspendedAt      DateTime? // When user was suspended
+  suspendedBy      String? // Admin ID who suspended the user
+  suspensionReason String? // Reason for suspension
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  links        Link[]
+  oneLinks     OneLink[]
+  adminLogs    AdminLog[]
+  subscription Subscription?
 
   @@index([email])
   @@index([apiKey])
   @@index([refreshToken])
+  @@index([roleId])
   @@map("users")
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
 }
 
 // ============= Link Model =============
@@ -85,18 +117,18 @@ model OneLink {
 
 // ============= Analytics Model =============
 model ClickEvent {
-  id         String   @id @default(cuid())
-  linkId     String?
-  oneLinkId  String?
-  timestamp  DateTime @default(now())
-  ip         String?
-  userAgent  String?
-  referer    String?
-  country    String?
-  city       String?
-  device     String?
-  browser    String?
-  os         String?
+  id        String   @id @default(cuid())
+  linkId    String?
+  oneLinkId String?
+  timestamp DateTime @default(now())
+  ip        String?
+  userAgent String?
+  referer   String?
+  country   String?
+  city      String?
+  device    String?
+  browser   String?
+  os        String?
 
   link    Link?    @relation(fields: [linkId], references: [id], onDelete: Cascade)
   oneLink OneLink? @relation(fields: [oneLinkId], references: [id], onDelete: Cascade)
@@ -105,4 +137,77 @@ model ClickEvent {
   @@index([oneLinkId, timestamp])
   @@index([timestamp])
   @@map("click_events")
+}
+
+// ============= Admin Log Model =============
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminId    String // Foreign key to users table
+  action     String // Action performed (VIEW_USER, EDIT_USER, etc.)
+  targetId   String? // ID of affected resource
+  targetType String? // Type of resource (USER, SUBSCRIPTION, etc.)
+  metadata   Json? // Additional context
+  ipAddress  String? // IP address of admin
+  createdAt  DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id])
+
+  @@index([adminId, createdAt])
+  @@index([targetId, targetType])
+  @@map("admin_logs")
+}
+
+// ============= Subscription Model (Future: Billing) =============
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  plan                 SubscriptionPlan   @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+
+  // Provider fields (for billing integration)
+  provider             String?            @default("stripe") // paypal, paddle, stripe, manual
+  providerSubscriptionId String?         // External subscription ID
+  providerCustomerId   String?           // External customer ID
+
+  // Period tracking
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean           @default(false)
+  trialEnd             DateTime?
+  canceledAt           DateTime?
+
+  // Metadata for provider-specific data
+  metadata             Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([provider])
+  @@index([providerSubscriptionId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+  PAUSED
+}
+
+// ============= System Settings Model =============
+model SystemSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   // 'boolean', 'string', 'number'
+  category  String   // 'system', 'email', 'security', 'rate-limit'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@map("system_settings")
 }

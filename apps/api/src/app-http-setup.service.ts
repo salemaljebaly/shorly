@@ -22,9 +22,15 @@ export class AppHttpSetupService implements OnApplicationBootstrap {
       next();
     });
 
-    // Body size limits
-    httpAdapter.use(json({ limit: '1mb' }));
-    httpAdapter.use(urlencoded({ extended: true, limit: '1mb' }));
+    const rawBodySaver = (req: Request & { rawBody?: Buffer }, _res: Response, buffer: Buffer) => {
+      if (buffer?.length) {
+        req.rawBody = Buffer.from(buffer);
+      }
+    };
+
+    // Body size limits with raw body preservation (required for Stripe webhooks)
+    httpAdapter.use(json({ limit: '1mb', verify: rawBodySaver }));
+    httpAdapter.use(urlencoded({ extended: true, limit: '1mb', verify: rawBodySaver }));
 
     // CORS
     httpAdapter.enableCors({ origin: process.env.CORS_ORIGIN || '*' });

@@ -42,7 +42,9 @@ async function bootstrap() {
 
   await app.listen(env.PORT);
 
+  // eslint-disable-next-line no-console
   console.log(`🚀 shorly API running on: http://localhost:${env.PORT}${env.API_PREFIX}`);
+  // eslint-disable-next-line no-console
   console.log(`📚 API Documentation: http://localhost:${env.PORT}/docs`);
 }
 

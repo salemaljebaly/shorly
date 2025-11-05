@@ -10,6 +10,7 @@ import {
   Settings,
   Smartphone,
   LogOut,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocalePath } from '@/lib/locale-routing';
@@ -43,6 +44,11 @@ const routes = [
     href: '/dashboard/qr',
   },
   {
+    label: 'Billing',
+    icon: CreditCard,
+    href: '/dashboard/billing',
+  },
+  {
     label: 'Settings',
     icon: Settings,
     href: '/dashboard/settings',
@@ -56,6 +62,7 @@ export function Sidebar() {
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_data');
     window.location.href = buildPath('/login');
   };
 
@@ -89,6 +96,7 @@ export function Sidebar() {
               </Link>
             );
           })}
+
         </div>
       </ScrollArea>
 

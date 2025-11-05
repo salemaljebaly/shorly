@@ -4,3 +4,4 @@ export * from './links';
 export * from './analytics';
 export * from './qr';
 export * from './onelinks';
+export * from './admin';

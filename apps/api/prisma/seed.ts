@@ -3,6 +3,65 @@ import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+async function seedRoles() {
+  console.log('👥 Seeding default roles...');
+
+  const defaultRoles = [
+    {
+      name: 'SUPER_ADMIN',
+      description: 'Full system access - owner only',
+      permissions: [
+        'users:read',
+        'users:write',
+        'users:delete',
+        'users:impersonate',
+        'users:suspend',
+        'billing:read',
+        'billing:write',
+        'billing:refund',
+        'system:read',
+        'system:write',
+        'roles:manage',
+        'logs:read',
+      ],
+    },
+    {
+      name: 'ADMIN',
+      description: 'Admin access - trusted team members',
+      permissions: [
+        'users:read',
+        'users:write',
+        'users:impersonate',
+        'users:suspend',
+        'billing:read',
+        'billing:write',
+        'system:read',
+        'logs:read',
+      ],
+    },
+    {
+      name: 'SUPERVISOR',
+      description: 'Read-only monitoring access',
+      permissions: ['users:read', 'billing:read', 'system:read', 'logs:read'],
+    },
+    {
+      name: 'USER',
+      description: 'Regular user - no admin access',
+      permissions: [],
+    },
+  ];
+
+  for (const roleData of defaultRoles) {
+    await prisma.role.upsert({
+      where: { name: roleData.name },
+      update: roleData,
+      create: roleData,
+    });
+  }
+
+  console.log('✅ Default roles seeded successfully.');
+}
+
 async function main() {
   console.log('🌱 Seeding database with demo data...');
 
@@ -10,11 +69,40 @@ async function main() {
   await prisma.clickEvent.deleteMany();
   await prisma.oneLink.deleteMany();
   await prisma.link.deleteMany();
+  await prisma.adminLog.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.role.deleteMany();
+
+  // Seed default roles
+  await seedRoles();
 
   const passwordHash = await bcrypt.hash('Password123!', 10);
 
+  // Get the roles we just created
+  const superAdminRole = await prisma.role.findUnique({ where: { name: 'SUPER_ADMIN' } });
+  const adminRole = await prisma.role.findUnique({ where: { name: 'ADMIN' } });
+  const userRole = await prisma.role.findUnique({ where: { name: 'USER' } });
+
+  if (!superAdminRole || !adminRole || !userRole) {
+    throw new Error('Default roles not found. Make sure roles are seeded first.');
+  }
+
   const users = await Promise.all([
+    // Super Admin Users
+    prisma.user.create({
+      data: {
+        email: 'admin@shorly.app',
+        name: 'Super Admin',
+        password: passwordHash,
+        bio: 'Super administrator with full system access.',
+        website: 'https://shorly.app',
+        timezone: 'UTC',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: superAdminRole.id, // Assign SUPER_ADMIN role
+      },
+    }),
     prisma.user.create({
       data: {
         email: 'demo@shorly.app',
@@ -26,8 +114,11 @@ async function main() {
         language: 'en',
         emailNotifications: true,
         analyticsTracking: true,
+        roleId: superAdminRole.id, // Assign SUPER_ADMIN role
       },
     }),
+
+    // Regular Admin Users
     prisma.user.create({
       data: {
         email: 'marketing@shorly.app',
@@ -39,11 +130,146 @@ async function main() {
         language: 'en',
         emailNotifications: true,
         analyticsTracking: true,
+        roleId: adminRole.id, // Assign ADMIN role
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'support@shorly.app',
+        name: 'Support Lead',
+        password: passwordHash,
+        bio: 'Handles customer support and user management.',
+        website: 'https://support.shorly.app',
+        timezone: 'America/Los_Angeles',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: adminRole.id, // Assign ADMIN role
+      },
+    }),
+
+    // Supervisor (Read-only Admin)
+    prisma.user.create({
+      data: {
+        email: 'supervisor@shorly.app',
+        name: 'System Supervisor',
+        password: passwordHash,
+        bio: 'Monitoring and analytics supervisor with read-only access.',
+        website: 'https://analytics.shorly.app',
+        timezone: 'Europe/London',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: (await prisma.role.findUnique({ where: { name: 'SUPERVISOR' } }))!.id,
+      },
+    }),
+
+    // Regular Users (for testing admin features)
+    prisma.user.create({
+      data: {
+        email: 'user1@shorly.app',
+        name: 'Regular User One',
+        password: passwordHash,
+        bio: 'Regular user for testing admin management features.',
+        website: 'https://personal.shorly.app',
+        timezone: 'America/New_York',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: userRole.id, // Assign USER role
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'user2@shorly.app',
+        name: 'Regular User Two',
+        password: passwordHash,
+        bio: 'Another regular user for testing purposes.',
+        website: 'https://blog.shorly.app',
+        timezone: 'Asia/Tokyo',
+        language: 'en',
+        emailNotifications: false,
+        analyticsTracking: true,
+        roleId: userRole.id, // Assign USER role
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'suspended@shorly.app',
+        name: 'Suspended User',
+        password: passwordHash,
+        bio: 'User with suspended account for testing suspension features.',
+        website: 'https://suspended.shorly.app',
+        timezone: 'Europe/Paris',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: false,
+        roleId: userRole.id, // Assign USER role
+        isActive: false, // Inactive user
+        suspendedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Suspended 24 hours ago
+        suspendedBy: 'admin@shorly.app',
+        suspensionReason: 'Violation of terms of service',
+      },
+    }),
+
+    // Users at risk (80%+ usage) - for testing monitoring dashboard
+    prisma.user.create({
+      data: {
+        email: 'heavy-free@shorly.app',
+        name: 'Heavy FREE User',
+        password: passwordHash,
+        bio: 'FREE plan user approaching link limit (9/10 links used)',
+        plan: 'FREE',
+        timezone: 'America/Chicago',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: userRole.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'heavy-starter@shorly.app',
+        name: 'Heavy STARTER User',
+        password: passwordHash,
+        bio: 'STARTER plan user with high click volume (8500/10000 clicks)',
+        plan: 'STARTER',
+        timezone: 'Europe/Berlin',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: userRole.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'heavy-pro@shorly.app',
+        name: 'Heavy PRO User',
+        password: passwordHash,
+        bio: 'PRO plan user nearing link capacity (190/200 links)',
+        plan: 'PRO',
+        timezone: 'Asia/Singapore',
+        language: 'en',
+        emailNotifications: true,
+        analyticsTracking: true,
+        roleId: userRole.id,
       },
     }),
   ]);
 
-  const [demoUser, marketingUser] = users;
+  const [
+    adminUser,
+    demoUser,
+    marketingUser,
+    supportUser,
+    supervisorUser,
+    regularUser1,
+    regularUser2,
+    suspendedUser,
+    heavyFreeUser,
+    heavyStarterUser,
+    heavyProUser,
+  ] = users;
 
   const demoLinks = await Promise.all([
     prisma.link.create({
@@ -152,6 +378,112 @@ async function main() {
     }),
   ]);
 
+  // Support user links
+  const supportLinks = await Promise.all([
+    prisma.link.create({
+      data: {
+        userId: supportUser.id,
+        shortCode: 'help-docs',
+        destinationUrl: 'https://docs.shorly.app',
+        title: 'Help Documentation',
+        tags: ['support', 'documentation'],
+        isActive: true,
+      },
+    }),
+    prisma.link.create({
+      data: {
+        userId: supportUser.id,
+        shortCode: 'contact-us',
+        destinationUrl: 'https://support.shorly.app/contact',
+        title: 'Contact Support',
+        tags: ['support', 'contact'],
+        isActive: true,
+      },
+    }),
+  ]);
+
+  // Regular user links
+  const regularUserLinks = await Promise.all([
+    prisma.link.create({
+      data: {
+        userId: regularUser1.id,
+        shortCode: 'my-blog',
+        destinationUrl: 'https://myblog.shorly.app',
+        title: 'My Personal Blog',
+        tags: ['personal', 'blog'],
+        isActive: true,
+      },
+    }),
+    prisma.link.create({
+      data: {
+        userId: regularUser2.id,
+        shortCode: 'portfolio',
+        destinationUrl: 'https://portfolio.shorly.app',
+        title: 'My Portfolio',
+        tags: ['portfolio', 'work'],
+        isActive: true,
+      },
+    }),
+    prisma.link.create({
+      data: {
+        userId: suspendedUser.id,
+        shortCode: 'banned-link',
+        destinationUrl: 'https://banned.shorly.app',
+        title: 'This should be inactive',
+        tags: ['banned'],
+        isActive: false, // Inactive link from suspended user
+      },
+    }),
+  ]);
+
+  // Heavy FREE user links (9 links = 90% of 10 limit)
+  const heavyFreeLinks = await Promise.all(
+    Array.from({ length: 9 }, (_, i) =>
+      prisma.link.create({
+        data: {
+          userId: heavyFreeUser.id,
+          shortCode: `free-link-${i + 1}`,
+          destinationUrl: `https://free-user.shorly.app/link-${i + 1}`,
+          title: `FREE User Link ${i + 1}`,
+          tags: ['free-plan', 'testing'],
+          isActive: true,
+        },
+      })
+    )
+  );
+
+  // Heavy STARTER user links (5 links with many clicks)
+  const heavyStarterLinks = await Promise.all(
+    Array.from({ length: 5 }, (_, i) =>
+      prisma.link.create({
+        data: {
+          userId: heavyStarterUser.id,
+          shortCode: `starter-link-${i + 1}`,
+          destinationUrl: `https://starter-user.shorly.app/link-${i + 1}`,
+          title: `STARTER User Link ${i + 1}`,
+          tags: ['starter-plan', 'high-traffic'],
+          isActive: true,
+        },
+      })
+    )
+  );
+
+  // Heavy PRO user links (190 links = 95% of 200 limit)
+  const heavyProLinks = await Promise.all(
+    Array.from({ length: 190 }, (_, i) =>
+      prisma.link.create({
+        data: {
+          userId: heavyProUser.id,
+          shortCode: `pro-link-${i + 1}`,
+          destinationUrl: `https://pro-user.shorly.app/link-${i + 1}`,
+          title: `PRO User Link ${i + 1}`,
+          tags: ['pro-plan', 'bulk'],
+          isActive: true,
+        },
+      })
+    )
+  );
+
   const now = new Date();
   const clickEvents = [
     // Demo user link clicks
@@ -204,6 +536,34 @@ async function main() {
         os: 'Windows',
       },
     ]),
+    // Support user links
+    ...supportLinks.flatMap((link, index) => [
+      {
+        linkId: link.id,
+        timestamp: new Date(now.getTime() - (index + 2) * 3200_000),
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120.0.0.0',
+        referer: 'https://stackoverflow.com',
+        country: 'Australia',
+        city: 'Sydney',
+        device: 'desktop',
+        browser: 'Chrome',
+        os: 'macOS',
+      },
+    ]),
+    // Regular user links
+    ...regularUserLinks.flatMap((link, index) => [
+      {
+        linkId: link.id,
+        timestamp: new Date(now.getTime() - (index + 3) * 2800_000),
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/121.0',
+        referer: 'https://reddit.com',
+        country: 'India',
+        city: 'Mumbai',
+        device: 'desktop',
+        browser: 'Firefox',
+        os: 'Windows',
+      },
+    ]),
     // OneLink routing events
     ...demoOneLinks.map((oneLink, index) => ({
       oneLinkId: oneLink.id,
@@ -231,7 +591,89 @@ async function main() {
 
   await prisma.clickEvent.createMany({ data: clickEvents });
 
+  // Generate 8500 clicks for heavy STARTER user (85% of 10000 limit)
+  // Using createMany in batches for better performance
+  const starterClicksData = [];
+  const currentMonth = new Date();
+  currentMonth.setDate(1); // First day of current month
+  currentMonth.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < 8500; i++) {
+    const linkIndex = i % heavyStarterLinks.length;
+    const hoursAgo = Math.floor(i / 10); // Spread over time
+    starterClicksData.push({
+      linkId: heavyStarterLinks[linkIndex].id,
+      timestamp: new Date(currentMonth.getTime() + hoursAgo * 3600_000),
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      referer: 'https://google.com',
+      country: 'United States',
+      city: 'Seattle',
+      device: 'desktop',
+      browser: 'Chrome',
+      os: 'Windows',
+    });
+  }
+
+  // Create clicks in batches to avoid memory issues
+  const batchSize = 1000;
+  for (let i = 0; i < starterClicksData.length; i += batchSize) {
+    const batch = starterClicksData.slice(i, i + batchSize);
+    await prisma.clickEvent.createMany({ data: batch });
+  }
+
   console.log('✅ Seed data created successfully.');
+
+  // Display login credentials
+  console.log('\n🔑 Login Credentials for Testing:');
+  console.log('=====================================');
+  console.log('📧 Email: admin@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: SUPER_ADMIN');
+  console.log('');
+  console.log('📧 Email: demo@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: SUPER_ADMIN');
+  console.log('');
+  console.log('📧 Email: marketing@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: ADMIN');
+  console.log('');
+  console.log('📧 Email: support@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: ADMIN');
+  console.log('');
+  console.log('📧 Email: supervisor@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: SUPERVISOR (Read-only Admin)');
+  console.log('');
+  console.log('📧 Email: user1@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: USER (Regular User)');
+  console.log('');
+  console.log('📧 Email: user2@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: USER (Regular User)');
+  console.log('');
+  console.log('📧 Email: suspended@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: USER (Suspended - for testing suspension features)');
+  console.log('');
+  console.log('📧 Email: heavy-free@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: USER (FREE plan - 9/10 links used, 90% usage)');
+  console.log('');
+  console.log('📧 Email: heavy-starter@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: USER (STARTER plan - 8500/10000 clicks used, 85% usage)');
+  console.log('');
+  console.log('📧 Email: heavy-pro@shorly.app');
+  console.log('🔐 Password: Password123!');
+  console.log('👤 Role: USER (PRO plan - 190/200 links used, 95% usage)');
+  console.log('=====================================');
+  console.log('🌐 Admin Dashboard: http://localhost:3000/admin');
+  console.log('🏠 User Dashboard: http://localhost:3000/dashboard');
+  console.log('📊 Monitoring Dashboard: http://localhost:3000/admin/monitoring');
+  console.log('');
 }
 
 main()

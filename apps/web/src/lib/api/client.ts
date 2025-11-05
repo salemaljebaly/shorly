@@ -27,7 +27,16 @@ apiClient.interceptors.request.use(
     if (typeof window !== 'undefined') {
       const token = window.localStorage.getItem('access_token');
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        const headers = config.headers ?? {};
+        const bearer = `Bearer ${token}`;
+
+        if (typeof (headers as any).set === 'function') {
+          (headers as any).set('Authorization', bearer);
+        } else {
+          (headers as any).Authorization = bearer;
+        }
+
+        config.headers = headers;
       }
     }
     return config;
