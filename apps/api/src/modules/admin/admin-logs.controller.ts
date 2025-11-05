@@ -23,7 +23,7 @@ export class AdminLogsController {
   @ApiResponse({ status: 200, description: 'Logs retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - admin access required' })
   @RequirePermissions(Permission.LOGS_READ)
-  async getAdminLogs(@Query() query: GetAdminLogsQueryDto, @Request() req: any) {
+  async getAdminLogs(@Query() query: GetAdminLogsQueryDto, @Request() _req: any) {
     const { page, limit, adminId, action, targetType, targetId, startDate, endDate } = query;
 
     const filters: any = {};
@@ -34,10 +34,10 @@ export class AdminLogsController {
     if (startDate) filters.startDate = new Date(startDate);
     if (endDate) filters.endDate = new Date(endDate);
 
-    const result = await this.adminLoggingService.getFilteredLogs(
-      filters,
-      { page: page || 1, limit: limit || 50 }
-    );
+    const result = await this.adminLoggingService.getFilteredLogs(filters, {
+      page: page || 1,
+      limit: limit || 50,
+    });
 
     const totalPages = Math.ceil(result.total / (limit || 50));
 
@@ -73,7 +73,7 @@ export class AdminLogsController {
   @ApiOperation({ summary: 'Get recent admin activity' })
   @ApiResponse({ status: 200, description: 'Recent activity retrieved successfully' })
   @RequirePermissions(Permission.LOGS_READ)
-  async getRecentActivity(@Request() req: any) {
+  async getRecentActivity(@Request() _req: any) {
     const logs = await this.adminLoggingService.getRecentActivity(24, 100);
     return { logs };
   }
@@ -85,7 +85,7 @@ export class AdminLogsController {
   @ApiOperation({ summary: 'Get admin action statistics' })
   @ApiResponse({ status: 200, description: 'Statistics retrieved successfully' })
   @RequirePermissions(Permission.LOGS_READ)
-  async getActionStats(@Request() req: any) {
+  async getActionStats(@Request() _req: any) {
     const stats = await this.adminLoggingService.getActionStats(7);
     return { stats };
   }

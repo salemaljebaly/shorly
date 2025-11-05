@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsBoolean, IsUrl, MaxLength } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({ description: 'User name', maxLength: 100 })

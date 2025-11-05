@@ -62,7 +62,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role?.name // Include role name
+        role: user.role?.name, // Include role name
       },
       accessToken,
       refreshToken,
@@ -116,7 +116,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role?.name // Include role name
+        role: user.role?.name, // Include role name
       },
       accessToken,
       refreshToken,
@@ -198,7 +198,7 @@ export class AuthService {
         accessToken,
         refreshToken: newRefreshToken,
       };
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }

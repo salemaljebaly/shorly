@@ -23,12 +23,14 @@ import Redis from 'ioredis';
 
         client.on('connect', () => {
           if (process.env.NODE_ENV !== 'test') {
+            // eslint-disable-next-line no-console
             console.log('✅ Redis connected');
           }
         });
 
         client.on('error', (err) => {
           if (process.env.NODE_ENV !== 'test') {
+            // eslint-disable-next-line no-console
             console.error('❌ Redis error:', err);
           }
         });

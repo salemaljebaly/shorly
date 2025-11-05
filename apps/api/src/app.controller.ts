@@ -1,5 +1,6 @@
 import { Controller, Get, Redirect } from '@nestjs/common';
 import { getApiInfo, getHealthInfo, getOpenApiDocument } from './app-info';
+import { SkipMaintenance } from './modules/admin/guards/maintenance.guard';
 
 @Controller()
 export class AppController {
@@ -9,6 +10,7 @@ export class AppController {
   }
 
   @Get('health')
+  @SkipMaintenance()
   health() {
     // Root-level health check for load balancers (excluded from /api/v1 prefix)
     return getHealthInfo();

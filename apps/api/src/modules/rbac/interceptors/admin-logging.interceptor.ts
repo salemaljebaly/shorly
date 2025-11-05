@@ -1,13 +1,8 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Observable, tap } from 'rxjs';
 import { Request } from 'express';
-import { AdminLoggingService, AdminLogAction, AdminLogTargetType, AdminLoggingMetadata } from '../admin-logging.service';
+import { AdminLoggingService, AdminLoggingMetadata } from '../admin-logging.service';
 
 interface AuthenticatedRequest extends Request {
   user?: any; // User object with id property
@@ -26,7 +21,10 @@ export const ADMIN_LOGGING_KEY = 'admin_logging';
 export class AdminLoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(AdminLoggingInterceptor.name);
 
-  constructor(private adminLoggingService: AdminLoggingService) {}
+  constructor(
+    private adminLoggingService: AdminLoggingService,
+    private reflector: Reflector
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -69,20 +67,10 @@ export class AdminLoggingInterceptor implements NestInterceptor {
    * @returns AdminLoggingMetadata | null
    */
   private getLoggingMetadata(context: ExecutionContext): AdminLoggingMetadata | null {
-    // For now, use a simple approach since reflector might not be available
-    // In a real implementation, you would use NestJS Reflector
-    // This is a simplified version for demonstration
-    try {
-      const { Reflector } = require('@nestjs/core');
-      const reflector = new Reflector();
-
-      return (
-        reflector.get(ADMIN_LOGGING_KEY, context.getHandler()) ||
-        reflector.get(ADMIN_LOGGING_KEY, context.getClass())
-      );
-    } catch (error) {
-      return null;
-    }
+    return (
+      this.reflector.get(ADMIN_LOGGING_KEY, context.getHandler()) ||
+      this.reflector.get(ADMIN_LOGGING_KEY, context.getClass())
+    );
   }
 
   /**
@@ -162,7 +150,10 @@ export class AdminLoggingInterceptor implements NestInterceptor {
    * @param metadata The logging metadata
    * @returns string | undefined
    */
-  private extractTargetId(request: AuthenticatedRequest, metadata: AdminLoggingMetadata): string | undefined {
+  private extractTargetId(
+    request: AuthenticatedRequest,
+    metadata: AdminLoggingMetadata
+  ): string | undefined {
     // Use custom function if provided
     if (metadata.getTargetId) {
       return metadata.getTargetId(request);
@@ -186,13 +177,11 @@ export class AdminLoggingInterceptor implements NestInterceptor {
 
     // Try to extract from query parameters
     if (request.query) {
-      return (
-        request.query.id ||
+      return (request.query.id ||
         request.query.userId ||
         request.query.subscriptionId ||
         request.query.ticketId ||
-        request.query.faqId
-      ) as string;
+        request.query.faqId) as string;
     }
 
     return undefined;
@@ -243,7 +232,7 @@ export class AdminLoggingInterceptor implements NestInterceptor {
 
     // Remove sensitive fields from current level
     for (const field of fieldsToRemove) {
-      if (obj.hasOwnProperty(field)) {
+      if (Object.prototype.hasOwnProperty.call(obj, field)) {
         obj[field] = '[REDACTED]';
       }
     }

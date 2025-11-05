@@ -1,11 +1,21 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient, SubscriptionPlan } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
-import { GetUsersQueryDto, UserPlan, UserStatus, SortOrder } from './dto/get-users-query.dto';
+import { GetUsersQueryDto, UserStatus, SortOrder } from './dto/get-users-query.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SuspendUserDto, ActivateUserDto, DeleteUserDto } from './dto/suspend-user.dto';
-import { AdminLoggingService, AdminLogAction, AdminLogTargetType } from '../rbac/admin-logging.service';
-import { Permission } from '../rbac/enums/permissions.enum';
+import {
+  AdminLoggingService,
+  AdminLogAction,
+  AdminLogTargetType,
+} from '../rbac/admin-logging.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -16,7 +26,7 @@ export class AdminService {
   constructor(
     private prisma: PrismaClient,
     private jwtService: JwtService,
-    private adminLoggingService: AdminLoggingService,
+    private adminLoggingService: AdminLoggingService
   ) {}
 
   /**
@@ -70,17 +80,16 @@ export class AdminService {
         }
       }
 
-      const whereClause = whereConditions.length > 0
-        ? `WHERE ${whereConditions.join(' AND ')}`
-        : '';
+      const whereClause =
+        whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
       // Build ORDER BY clause
       const sortFieldMap = {
-        'createdAt': 'u."createdAt"',
-        'email': 'u."email"',
-        'name': 'u."name"',
-        'total_links': 'total_links',
-        'total_clicks': 'total_clicks'
+        createdAt: 'u."createdAt"',
+        email: 'u."email"',
+        name: 'u."name"',
+        total_links: 'total_links',
+        total_clicks: 'total_clicks',
       };
       const sortField = sortFieldMap[sortBy as keyof typeof sortFieldMap] || 'u.createdAt';
 
@@ -269,11 +278,7 @@ export class AdminService {
         isActive: user.isActive,
         role: user.role?.name || 'USER',
         plan: user.plan,
-        status: user.suspendedAt
-          ? 'SUSPENDED'
-          : user.isActive
-            ? 'ACTIVE'
-            : 'INACTIVE',
+        status: user.suspendedAt ? 'SUSPENDED' : user.isActive ? 'ACTIVE' : 'INACTIVE',
         total_links: 0,
         total_onelinks: 0,
         total_clicks: 0,
@@ -343,7 +348,11 @@ export class AdminService {
         WHERE u.id = $1
       `;
 
-      const currentMonthUsage = await this.prisma.$queryRawUnsafe(currentMonthQuery, userId, currentMonthStart);
+      const currentMonthUsage = await this.prisma.$queryRawUnsafe(
+        currentMonthQuery,
+        userId,
+        currentMonthStart
+      );
 
       const planLimits = this.getPlanLimits('FREE'); // All users are FREE for now
 
@@ -399,7 +408,7 @@ export class AdminService {
           suspensionReason: user.suspensionReason,
           role: user.role?.name || 'USER',
           plan: user.plan,
-          status: user.suspendedAt ? 'SUSPENDED' : (user.isActive ? 'ACTIVE' : 'INACTIVE'),
+          status: user.suspendedAt ? 'SUSPENDED' : user.isActive ? 'ACTIVE' : 'INACTIVE',
         },
         subscription: null, // No subscription table yet
         usage: {
@@ -504,7 +513,7 @@ export class AdminService {
         'plan',
       ];
       const filteredData: any = Object.keys(updateData)
-        .filter(key => allowedFields.includes(key))
+        .filter((key) => allowedFields.includes(key))
         .reduce((obj: any, key: string) => {
           obj[key] = (updateData as any)[key];
           return obj;
@@ -553,29 +562,29 @@ export class AdminService {
         action: AdminLogAction.EDIT_USER,
         targetId: userId,
         targetType: AdminLogTargetType.USER,
-          metadata: {
-            before: {
-              name: existingUser.name,
-              email: existingUser.email,
-              timezone: existingUser.timezone,
-              language: existingUser.language,
-              emailNotifications: existingUser.emailNotifications,
-              analyticsTracking: existingUser.analyticsTracking,
-              role: existingUser.role?.name,
-              plan: existingUser.plan,
-            },
-            after: {
-              ...filteredData,
-              ...(roleIdToUpdate
-                ? {
-                    role: updateData.role,
-                  }
-                : {
-                    role: existingUser.role?.name,
-                  }),
-              plan: filteredData.plan ?? existingUser.plan,
-            },
+        metadata: {
+          before: {
+            name: existingUser.name,
+            email: existingUser.email,
+            timezone: existingUser.timezone,
+            language: existingUser.language,
+            emailNotifications: existingUser.emailNotifications,
+            analyticsTracking: existingUser.analyticsTracking,
+            role: existingUser.role?.name,
+            plan: existingUser.plan,
           },
+          after: {
+            ...filteredData,
+            ...(roleIdToUpdate
+              ? {
+                  role: updateData.role,
+                }
+              : {
+                  role: existingUser.role?.name,
+                }),
+            plan: filteredData.plan ?? existingUser.plan,
+          },
+        },
       });
 
       return {

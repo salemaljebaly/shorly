@@ -9,9 +9,15 @@ import {
   Body,
   UseGuards,
   Request,
-  ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { RolesGuard } from '../rbac/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles, RequirePermissions } from '../rbac/decorators';
@@ -49,13 +55,33 @@ export class AdminController {
   @ApiOperation({ summary: 'Get list of users with filters and pagination' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Items per page (default: 20, max: 100)' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by email, name, or ID' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20, max: 100)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by email, name, or ID',
+  })
   @ApiQuery({ name: 'plan', required: false, enum: UserPlan, description: 'Filter by plan' })
   @ApiQuery({ name: 'status', required: false, enum: UserStatus, description: 'Filter by status' })
   @ApiQuery({ name: 'sortBy', required: false, type: String, description: 'Field to sort by' })
-  @ApiQuery({ name: 'sortOrder', required: false, type: String, description: 'Sort direction (ASC/DESC)' })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort direction (ASC/DESC)',
+  })
   @RequirePermissions(Permission.USERS_READ)
   @AdminLog({
     action: AdminLogAction.VIEW_USER,
@@ -64,16 +90,7 @@ export class AdminController {
     logResponse: false,
   })
   async getUserList(@Query() query: GetUsersQueryDto, @Request() req: any) {
-    console.log('📊 AdminController - getUserList called with query:', query);
-    console.log('📊 AdminController - Request user:', req.user?.id, req.user?.email);
-    try {
-      const result = await this.adminService.getUserList(query, req.user.id);
-      console.log('✅ AdminController - getUserList success, returning:', (result?.data as any[])?.length, 'users');
-      return result;
-    } catch (error) {
-      console.log('❌ AdminController - getUserList error:', error.message);
-      throw error;
-    }
+    return await this.adminService.getUserList(query, req.user.id);
   }
 
   /**
@@ -112,7 +129,7 @@ export class AdminController {
   async updateUser(
     @Param('id') id: string,
     @Body() updateData: UpdateUserDto,
-    @Request() req: any,
+    @Request() req: any
   ) {
     return this.adminService.updateUser(id, updateData, req.user.id);
   }
@@ -132,7 +149,7 @@ export class AdminController {
   async suspendUser(
     @Param('id') id: string,
     @Body() suspendData: SuspendUserDto,
-    @Request() req: any,
+    @Request() req: any
   ) {
     return this.adminService.suspendUser(id, suspendData, req.user.id);
   }
@@ -152,7 +169,7 @@ export class AdminController {
   async activateUser(
     @Param('id') id: string,
     @Body() activateData: ActivateUserDto,
-    @Request() req: any,
+    @Request() req: any
   ) {
     return this.adminService.activateUser(id, activateData, req.user.id);
   }
@@ -165,7 +182,10 @@ export class AdminController {
   @ApiOperation({ summary: 'Delete user account (soft delete)' })
   @ApiResponse({ status: 200, description: 'User deleted successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 403, description: 'Cannot delete admin users or insufficient permissions' })
+  @ApiResponse({
+    status: 403,
+    description: 'Cannot delete admin users or insufficient permissions',
+  })
   @ApiParam({ name: 'id', description: 'User ID' })
   @RequirePermissions(Permission.USERS_DELETE)
   @Roles(Role.SUPER_ADMIN) // Only SUPER_ADMIN can delete users
@@ -173,7 +193,7 @@ export class AdminController {
   async deleteUser(
     @Param('id') id: string,
     @Body() deleteData: DeleteUserDto,
-    @Request() req: any,
+    @Request() req: any
   ) {
     return this.adminService.deleteUser(id, deleteData, req.user.id);
   }

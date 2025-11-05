@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { Request } from 'express';
 
@@ -97,9 +97,7 @@ export interface AdminLoggingMetadata {
 export class AdminLoggingService {
   private readonly logger = new Logger(AdminLoggingService.name);
 
-  constructor(
-    private prisma: PrismaClient
-  ) {}
+  constructor(private prisma: PrismaClient) {}
 
   /**
    * Log an admin action to the audit trail
@@ -281,10 +279,13 @@ export class AdminLoggingService {
         },
       });
 
-      return stats.reduce((acc, stat) => {
-        acc[stat.action] = stat._count.action;
-        return acc;
-      }, {} as Record<string, number>);
+      return stats.reduce(
+        (acc, stat) => {
+          acc[stat.action] = stat._count.action;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
     } catch (error) {
       this.logger.error('Failed to get admin action stats:', error);
       throw error;

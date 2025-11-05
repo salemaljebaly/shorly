@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RbacService } from '../rbac.service';
 import { ROLES_KEY, PERMISSIONS_KEY, ANY_PERMISSION_KEY } from '../decorators';
@@ -18,20 +24,8 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    console.log('🛡️ RolesGuard - Checking access for:', {
-      url: request.url,
-      method: request.method,
-      user: {
-        id: user?.id,
-        email: user?.email,
-        role: user?.role?.name || user?.role,
-        isActive: user?.isActive
-      }
-    });
-
     // If there's no user, authentication failed
     if (!user || !user.id) {
-      console.log('❌ RolesGuard - No user or user ID found');
       throw new ForbiddenException('Authentication required');
     }
 
@@ -48,10 +42,10 @@ export class RolesGuard implements CanActivate {
     ]);
 
     // Get required permissions from metadata (OR logic)
-    const anyRequiredPermissions = this.reflector.getAllAndOverride<Permission[]>(ANY_PERMISSION_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const anyRequiredPermissions = this.reflector.getAllAndOverride<Permission[]>(
+      ANY_PERMISSION_KEY,
+      [context.getHandler(), context.getClass()]
+    );
 
     // If no roles or permissions are required, allow access
     if (!requiredRoles?.length && !requiredPermissions?.length && !anyRequiredPermissions?.length) {
@@ -61,39 +55,47 @@ export class RolesGuard implements CanActivate {
     try {
       // Check role-based access
       if (requiredRoles?.length) {
-        console.log('🛡️ RolesGuard - Checking required roles:', requiredRoles);
         const hasRole = await this.rbacService.hasAnyRole(user.id, requiredRoles);
-        console.log('🛡️ RolesGuard - Role check result:', hasRole);
         if (!hasRole) {
-          this.logger.warn(`Access denied: User ${user.id} lacks required roles: ${requiredRoles.join(', ')}`);
-          console.log('❌ RolesGuard - Access denied: insufficient roles');
+          this.logger.warn(
+            `Access denied: User ${user.id} lacks required roles: ${requiredRoles.join(', ')}`
+          );
           throw new ForbiddenException('Insufficient permissions: invalid role');
         }
       }
 
       // Check permission-based access (AND logic - all permissions required)
       if (requiredPermissions?.length) {
-        console.log('🛡️ RolesGuard - Checking required permissions:', requiredPermissions);
-        const hasPermissions = await this.rbacService.hasAllPermissions(user.id, requiredPermissions);
-        console.log('🛡️ RolesGuard - Permission check result:', hasPermissions);
+        const hasPermissions = await this.rbacService.hasAllPermissions(
+          user.id,
+          requiredPermissions
+        );
         if (!hasPermissions) {
-          this.logger.warn(`Access denied: User ${user.id} lacks required permissions: ${requiredPermissions.join(', ')}`);
-          console.log('❌ RolesGuard - Access denied: insufficient permissions');
+          this.logger.warn(
+            `Access denied: User ${user.id} lacks required permissions: ${requiredPermissions.join(', ')}`
+          );
           throw new ForbiddenException('Insufficient permissions: missing required permissions');
         }
       }
 
       // Check permission-based access (OR logic - any permission sufficient)
       if (anyRequiredPermissions?.length) {
-        const hasAnyPermission = await this.rbacService.hasAnyPermission(user.id, anyRequiredPermissions);
+        const hasAnyPermission = await this.rbacService.hasAnyPermission(
+          user.id,
+          anyRequiredPermissions
+        );
         if (!hasAnyPermission) {
-          this.logger.warn(`Access denied: User ${user.id} lacks any of required permissions: ${anyRequiredPermissions.join(', ')}`);
+          this.logger.warn(
+            `Access denied: User ${user.id} lacks any of required permissions: ${anyRequiredPermissions.join(', ')}`
+          );
           throw new ForbiddenException('Insufficient permissions: missing required permissions');
         }
       }
 
       // Log successful access for audit purposes
-      this.logger.debug(`Access granted: User ${user.id} accessed ${request.method} ${request.url}`);
+      this.logger.debug(
+        `Access granted: User ${user.id} accessed ${request.method} ${request.url}`
+      );
 
       return true;
     } catch (error) {
