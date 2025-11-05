@@ -294,6 +294,21 @@ describe('AdminService', () => {
         'Only super admins can assign elevated roles'
       );
     });
+
+    it('should throw when admin context not found', async () => {
+      const createDto: CreateUserDto = {
+        email: 'newuser@example.com',
+        password: 'Password123',
+      };
+
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(null) // no existing user
+        .mockResolvedValueOnce(null); // admin not found
+
+      await expect(service.createUser(createDto, 'nonexistent-admin')).rejects.toThrow(
+        'Admin context not found'
+      );
+    });
   });
 
   describe('getUserDetails', () => {
@@ -771,6 +786,603 @@ describe('AdminService', () => {
         links: 10,
         onelinks: 3,
         clicks: 1000,
+      });
+    });
+  });
+
+  describe('getUserList - edge cases', () => {
+    it('should filter users by plan', async () => {
+      const query: GetUsersQueryDto = {
+        plan: UserPlan.PRO,
+        page: 1,
+        pageSize: 10,
+      };
+
+      mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([]).mockResolvedValueOnce([{ total: 0 }]);
+
+      await service.getUserList(query, 'admin123');
+
+      const [usersQueryCall] = mockPrisma.$queryRawUnsafe.mock.calls;
+      expect(usersQueryCall[0]).toContain('u.plan = $1::"SubscriptionPlan"');
+      expect(usersQueryCall[1]).toBe('PRO');
+    });
+
+    it('should filter users by ACTIVE status', async () => {
+      const query: GetUsersQueryDto = {
+        status: UserStatus.ACTIVE,
+        page: 1,
+        pageSize: 10,
+      };
+
+      mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([]).mockResolvedValueOnce([{ total: 0 }]);
+
+      await service.getUserList(query, 'admin123');
+
+      const [usersQueryCall] = mockPrisma.$queryRawUnsafe.mock.calls;
+      expect(usersQueryCall[0]).toContain('u."suspendedAt" IS NULL AND u."isActive" = true');
+    });
+
+    it('should filter users by INACTIVE status', async () => {
+      const query: GetUsersQueryDto = {
+        status: UserStatus.INACTIVE,
+        page: 1,
+        pageSize: 10,
+      };
+
+      mockPrisma.$queryRawUnsafe.mockResolvedValueOnce([]).mockResolvedValueOnce([{ total: 0 }]);
+
+      await service.getUserList(query, 'admin123');
+
+      const [usersQueryCall] = mockPrisma.$queryRawUnsafe.mock.calls;
+      expect(usersQueryCall[0]).toContain('u."isActive" = false');
+    });
+
+    it('should handle errors when getting user list', async () => {
+      const query: GetUsersQueryDto = {
+        page: 1,
+        pageSize: 10,
+      };
+
+      const error = new Error('Database error');
+      mockPrisma.$queryRawUnsafe.mockRejectedValueOnce(error);
+
+      await expect(service.getUserList(query, 'admin123')).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('updateUser - edge cases', () => {
+    it('should throw when no valid fields to update', async () => {
+      const userId = 'user123';
+      const updateData = { invalidField: 'test' } as any;
+
+      const existingUser = {
+        id: userId,
+        email: 'user@example.com',
+        role: { name: 'USER' },
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValue(existingUser);
+
+      await expect(service.updateUser(userId, updateData, 'admin123')).rejects.toThrow(
+        'No valid fields to update'
+      );
+    });
+
+    it('should throw when requested role is not configured', async () => {
+      const userId = 'user123';
+      const updateData: UpdateUserDto = {
+        role: 'ADMIN',
+      };
+
+      const existingUser = {
+        id: userId,
+        email: 'user@example.com',
+        role: { name: 'USER' },
+      };
+
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(existingUser)
+        .mockResolvedValueOnce({ id: 'admin123', role: { name: 'SUPER_ADMIN' } });
+      mockPrisma.role.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.updateUser(userId, updateData, 'admin123')).rejects.toThrow(
+        'Requested role is not configured'
+      );
+    });
+  });
+
+  describe('suspendUser - edge cases', () => {
+    it('should throw ForbiddenException when trying to suspend admin', async () => {
+      const userId = 'admin456';
+      const suspendData: SuspendUserDto = {
+        reason: 'Test reason',
+      };
+
+      const mockUser = {
+        id: userId,
+        email: 'admin@example.com',
+        role: { name: 'ADMIN' },
+        suspendedAt: null,
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+
+      await expect(service.suspendUser(userId, suspendData, 'admin123')).rejects.toThrow(
+        'Cannot suspend admin users'
+      );
+    });
+
+    it('should throw ForbiddenException when trying to suspend super admin', async () => {
+      const userId = 'superadmin456';
+      const suspendData: SuspendUserDto = {
+        reason: 'Test reason',
+      };
+
+      const mockUser = {
+        id: userId,
+        email: 'superadmin@example.com',
+        role: { name: 'SUPER_ADMIN' },
+        suspendedAt: null,
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+
+      await expect(service.suspendUser(userId, suspendData, 'admin123')).rejects.toThrow(
+        'Cannot suspend admin users'
+      );
+    });
+  });
+
+  describe('activateUser - edge cases', () => {
+    it('should throw NotFoundException when user not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.activateUser('nonexistent', {} as any, 'admin123')).rejects.toThrow(
+        'User not found'
+      );
+    });
+  });
+
+  describe('deleteUser - edge cases', () => {
+    it('should throw ForbiddenException when trying to delete admin', async () => {
+      const userId = 'admin456';
+      const deleteData: DeleteUserDto = {
+        confirm: 'DELETE',
+        reason: 'Test',
+      };
+
+      const mockUser = {
+        id: userId,
+        email: 'admin@example.com',
+        role: { name: 'ADMIN' },
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+
+      await expect(service.deleteUser(userId, deleteData, 'admin123')).rejects.toThrow(
+        'Cannot delete admin users'
+      );
+    });
+
+    it('should throw ForbiddenException when trying to delete super admin', async () => {
+      const userId = 'superadmin456';
+      const deleteData: DeleteUserDto = {
+        confirm: 'DELETE',
+        reason: 'Test',
+      };
+
+      const mockUser = {
+        id: userId,
+        email: 'superadmin@example.com',
+        role: { name: 'SUPER_ADMIN' },
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+
+      await expect(service.deleteUser(userId, deleteData, 'admin123')).rejects.toThrow(
+        'Cannot delete admin users'
+      );
+    });
+
+    it('should throw NotFoundException when user not found', async () => {
+      const deleteData: DeleteUserDto = {
+        confirm: 'DELETE',
+        reason: 'Test',
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.deleteUser('nonexistent', deleteData, 'admin123')).rejects.toThrow(
+        'User not found'
+      );
+    });
+  });
+
+  describe('impersonateUser - edge cases', () => {
+    it('should throw NotFoundException when user not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.impersonateUser('nonexistent', 'admin123')).rejects.toThrow(
+        'User not found'
+      );
+    });
+
+    it('should throw BadRequestException when user is inactive', async () => {
+      const mockUser = {
+        id: 'user123',
+        email: 'user@example.com',
+        isActive: false,
+        suspendedAt: null,
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+
+      await expect(service.impersonateUser('user123', 'admin123')).rejects.toThrow(
+        'Cannot impersonate inactive or suspended user'
+      );
+    });
+
+    it('should throw ForbiddenException when trying to impersonate super admin', async () => {
+      const mockUser = {
+        id: 'superadmin123',
+        email: 'superadmin@example.com',
+        role: { name: 'SUPER_ADMIN' },
+        isActive: true,
+        suspendedAt: null,
+      };
+
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+
+      await expect(service.impersonateUser('superadmin123', 'admin123')).rejects.toThrow(
+        'Cannot impersonate admin users'
+      );
+    });
+  });
+
+  describe('getDashboardMetrics', () => {
+    it('should return dashboard metrics with aggregated data', async () => {
+      const mockUserStats = [
+        {
+          total_users: 150,
+          new_this_week: 10,
+          new_this_month: 35,
+          active_users: 120,
+        },
+      ];
+
+      const mockUsageStats = [
+        {
+          total_links: 500,
+          total_onelinks: 75,
+          total_clicks: 10000,
+          clicks_today: 250,
+        },
+      ];
+
+      const mockSignupsByDay = [
+        { date: '2025-01-20', count: 5 },
+        { date: '2025-01-21', count: 8 },
+        { date: '2025-01-22', count: 12 },
+      ];
+
+      const mockRecentActivity = [
+        {
+          type: 'USER_REGISTERED',
+          timestamp: new Date('2025-01-22T10:00:00Z'),
+          details: { userId: 'user1', email: 'user1@example.com', name: 'User 1' },
+        },
+        {
+          type: 'LINK_CREATED',
+          timestamp: new Date('2025-01-22T09:00:00Z'),
+          details: { linkId: 'link1', shortCode: 'abc123' },
+        },
+      ];
+
+      mockPrisma.$queryRawUnsafe
+        .mockResolvedValueOnce(mockUserStats)
+        .mockResolvedValueOnce(mockUsageStats)
+        .mockResolvedValueOnce(mockSignupsByDay)
+        .mockResolvedValueOnce(mockRecentActivity);
+
+      const result = await service.getDashboardMetrics('admin123');
+
+      expect(result.users).toEqual({
+        total: 150,
+        newThisWeek: 10,
+        newThisMonth: 35,
+        active: 120,
+      });
+
+      expect(result.usage).toEqual({
+        totalLinks: 500,
+        totalOneLinks: 75,
+        totalClicks: 10000,
+        clicksToday: 250,
+      });
+
+      expect(result.signupsByDay).toHaveLength(3);
+      expect(result.signupsByDay[0]).toEqual({ date: '2025-01-20', count: 5 });
+
+      expect(result.recentActivity).toHaveLength(2);
+      expect(result.recentActivity[0].type).toBe('USER_REGISTERED');
+      expect(result.recentActivity[1].type).toBe('LINK_CREATED');
+
+      expect(mockPrisma.$queryRawUnsafe).toHaveBeenCalledTimes(4);
+    });
+
+    it('should handle empty results from database', async () => {
+      mockPrisma.$queryRawUnsafe
+        .mockResolvedValueOnce([]) // userStats
+        .mockResolvedValueOnce([]) // usageStats
+        .mockResolvedValueOnce([]) // signupsByDay
+        .mockResolvedValueOnce([]); // recentActivity
+
+      const result = await service.getDashboardMetrics('admin123');
+
+      expect(result.users).toEqual({
+        total: 0,
+        newThisWeek: 0,
+        newThisMonth: 0,
+        active: 0,
+      });
+
+      expect(result.usage).toEqual({
+        totalLinks: 0,
+        totalOneLinks: 0,
+        totalClicks: 0,
+        clicksToday: 0,
+      });
+
+      expect(result.signupsByDay).toEqual([]);
+      expect(result.recentActivity).toEqual([]);
+    });
+
+    it('should handle null/undefined values in stats', async () => {
+      const mockUserStats = [
+        {
+          total_users: null,
+          new_this_week: undefined,
+          new_this_month: 0,
+          active_users: 50,
+        },
+      ];
+
+      const mockUsageStats = [
+        {
+          total_links: null,
+          total_onelinks: undefined,
+          total_clicks: 0,
+          clicks_today: 100,
+        },
+      ];
+
+      mockPrisma.$queryRawUnsafe
+        .mockResolvedValueOnce(mockUserStats)
+        .mockResolvedValueOnce(mockUsageStats)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getDashboardMetrics('admin123');
+
+      expect(result.users.total).toBe(0);
+      expect(result.users.newThisWeek).toBe(0);
+      expect(result.users.newThisMonth).toBe(0);
+      expect(result.users.active).toBe(50);
+
+      expect(result.usage.totalLinks).toBe(0);
+      expect(result.usage.totalOneLinks).toBe(0);
+      expect(result.usage.totalClicks).toBe(0);
+      expect(result.usage.clicksToday).toBe(100);
+    });
+
+    it('should throw error when database query fails', async () => {
+      const error = new Error('Database connection failed');
+      mockPrisma.$queryRawUnsafe.mockRejectedValueOnce(error);
+
+      await expect(service.getDashboardMetrics('admin123')).rejects.toThrow(
+        'Database connection failed'
+      );
+    });
+  });
+
+  describe('getMonitoringData', () => {
+    it('should return monitoring data with users at risk and heavy users', async () => {
+      const mockUsersAtRisk = [
+        {
+          id: 'user1',
+          email: 'user1@example.com',
+          name: 'User 1',
+          plan: 'FREE',
+          links_used: 9,
+          links_limit: 10,
+          clicks_used: 950,
+          clicks_limit: 1000,
+          links_usage_percentage: 90.0,
+          clicks_usage_percentage: 95.0,
+        },
+        {
+          id: 'user2',
+          email: 'user2@example.com',
+          name: 'User 2',
+          plan: 'STARTER',
+          links_used: 45,
+          links_limit: 50,
+          clicks_used: 8500,
+          clicks_limit: 10000,
+          links_usage_percentage: 90.0,
+          clicks_usage_percentage: 85.0,
+        },
+      ];
+
+      const mockHeavyUsers = [
+        {
+          id: 'heavy1',
+          email: 'heavy1@example.com',
+          name: 'Heavy User 1',
+          plan: 'PRO',
+          total_links: 180,
+          total_onelinks: 45,
+          total_clicks: 45000,
+        },
+      ];
+
+      const mockSystemHealth = [
+        {
+          active_users: 100,
+          active_links: 500,
+          clicks_today: 1000,
+          clicks_last_hour: 50,
+        },
+      ];
+
+      mockPrisma.$queryRawUnsafe
+        .mockResolvedValueOnce(mockUsersAtRisk)
+        .mockResolvedValueOnce(mockHeavyUsers)
+        .mockResolvedValueOnce(mockSystemHealth);
+
+      const result = await service.getMonitoringData('admin123');
+
+      expect(result.usersAtRisk).toHaveLength(2);
+      expect(result.usersAtRisk[0]).toEqual({
+        id: 'user1',
+        email: 'user1@example.com',
+        name: 'User 1',
+        plan: 'FREE',
+        linksUsed: 9,
+        linksLimit: 10,
+        clicksUsed: 950,
+        clicksLimit: 1000,
+        linksUsagePercentage: 90.0,
+        clicksUsagePercentage: 95.0,
+      });
+
+      expect(result.heavyUsers).toHaveLength(1);
+      expect(result.heavyUsers[0]).toEqual({
+        id: 'heavy1',
+        email: 'heavy1@example.com',
+        name: 'Heavy User 1',
+        plan: 'PRO',
+        totalLinks: 180,
+        totalOneLinks: 45,
+        totalClicks: 45000,
+      });
+
+      expect(result.systemHealth).toEqual({
+        activeUsers: 100,
+        activeLinks: 500,
+        clicksToday: 1000,
+        clicksLastHour: 50,
+        database: { status: 'healthy' },
+        redis: { status: 'healthy' },
+        api: { status: 'healthy' },
+      });
+
+      expect(mockPrisma.$queryRawUnsafe).toHaveBeenCalledTimes(3);
+    });
+
+    it('should handle empty monitoring data', async () => {
+      const mockSystemHealth = [
+        {
+          active_users: 0,
+          active_links: 0,
+          clicks_today: 0,
+          clicks_last_hour: 0,
+        },
+      ];
+
+      mockPrisma.$queryRawUnsafe
+        .mockResolvedValueOnce([]) // usersAtRisk
+        .mockResolvedValueOnce([]) // heavyUsers
+        .mockResolvedValueOnce(mockSystemHealth);
+
+      const result = await service.getMonitoringData('admin123');
+
+      expect(result.usersAtRisk).toEqual([]);
+      expect(result.heavyUsers).toEqual([]);
+      expect(result.systemHealth.activeUsers).toBe(0);
+      expect(result.systemHealth.database.status).toBe('healthy');
+    });
+
+    it('should handle null/undefined values in monitoring data', async () => {
+      const mockUsersAtRisk = [
+        {
+          id: 'user1',
+          email: 'user1@example.com',
+          name: 'User 1',
+          plan: 'FREE',
+          links_used: null,
+          links_limit: 10,
+          clicks_used: undefined,
+          clicks_limit: 1000,
+          links_usage_percentage: null,
+          clicks_usage_percentage: undefined,
+        },
+      ];
+
+      const mockHeavyUsers = [
+        {
+          id: 'heavy1',
+          email: 'heavy1@example.com',
+          name: 'Heavy User 1',
+          plan: 'PRO',
+          total_links: null,
+          total_onelinks: undefined,
+          total_clicks: 0,
+        },
+      ];
+
+      const mockSystemHealth = [
+        {
+          active_users: null,
+          active_links: undefined,
+          clicks_today: 0,
+          clicks_last_hour: null,
+        },
+      ];
+
+      mockPrisma.$queryRawUnsafe
+        .mockResolvedValueOnce(mockUsersAtRisk)
+        .mockResolvedValueOnce(mockHeavyUsers)
+        .mockResolvedValueOnce(mockSystemHealth);
+
+      const result = await service.getMonitoringData('admin123');
+
+      expect(result.usersAtRisk[0].linksUsed).toBe(0);
+      expect(result.usersAtRisk[0].clicksUsed).toBe(0);
+      expect(result.usersAtRisk[0].linksUsagePercentage).toBe(0);
+      expect(result.usersAtRisk[0].clicksUsagePercentage).toBe(0);
+
+      expect(result.heavyUsers[0].totalLinks).toBe(0);
+      expect(result.heavyUsers[0].totalOneLinks).toBe(0);
+
+      expect(result.systemHealth.activeUsers).toBe(0);
+      expect(result.systemHealth.activeLinks).toBe(0);
+      expect(result.systemHealth.clicksLastHour).toBe(0);
+    });
+
+    it('should throw error when database query fails', async () => {
+      const error = new Error('Database query failed');
+      mockPrisma.$queryRawUnsafe.mockRejectedValueOnce(error);
+
+      await expect(service.getMonitoringData('admin123')).rejects.toThrow('Database query failed');
+    });
+
+    it('should handle empty system health data', async () => {
+      mockPrisma.$queryRawUnsafe
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getMonitoringData('admin123');
+
+      expect(result.systemHealth).toEqual({
+        activeUsers: 0,
+        activeLinks: 0,
+        clicksToday: 0,
+        clicksLastHour: 0,
+        database: { status: 'healthy' },
+        redis: { status: 'healthy' },
+        api: { status: 'healthy' },
       });
     });
   });
