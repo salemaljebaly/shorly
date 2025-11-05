@@ -107,7 +107,8 @@ export function CancelSubscriptionDialog({
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              This subscription cannot be cancelled because it's already {subscription.status.toLowerCase()}.
+              This subscription cannot be cancelled because it&apos;s already{' '}
+              {subscription.status.toLowerCase()}.
             </AlertDescription>
           </Alert>
         ) : (
@@ -122,11 +123,20 @@ export function CancelSubscriptionDialog({
             <div className="space-y-2">
               <Label>Current Subscription Details</Label>
               <div className="text-sm text-muted-foreground space-y-1">
-                <div><strong>Plan:</strong> {subscription.plan}</div>
-                <div><strong>Status:</strong> {subscription.status}</div>
-                <div><strong>User:</strong> {subscription.user.email}</div>
+                <div>
+                  <strong>Plan:</strong> {subscription.plan}
+                </div>
+                <div>
+                  <strong>Status:</strong> {subscription.status}
+                </div>
+                <div>
+                  <strong>User:</strong> {subscription.user.email}
+                </div>
                 {subscription.currentPeriodEnd && (
-                  <div><strong>Current Period Ends:</strong> {new Date(subscription.currentPeriodEnd).toLocaleDateString()}</div>
+                  <div>
+                    <strong>Current Period Ends:</strong>{' '}
+                    {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                  </div>
                 )}
               </div>
             </div>
@@ -146,8 +156,11 @@ export function CancelSubscriptionDialog({
                 </div>
                 {!immediate && (
                   <p className="text-sm text-muted-foreground">
-                    If not checked, subscription will remain active until the end of the current billing period (
-                    {subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd).toLocaleDateString()})
+                    If not checked, subscription will remain active until the end of the current
+                    billing period (
+                    {subscription.currentPeriodEnd &&
+                      new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                    )
                   </p>
                 )}
               </div>
@@ -167,7 +180,7 @@ export function CancelSubscriptionDialog({
             <div className="space-y-2">
               <Label htmlFor="confirmEmail">Confirmation Required</Label>
               <p className="text-sm text-muted-foreground">
-                Type the user's email address to confirm cancellation:
+                Type the user&apos;s email address to confirm cancellation:
               </p>
               <Input
                 id="confirmEmail"
@@ -180,12 +193,7 @@ export function CancelSubscriptionDialog({
             </div>
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={loading}
-              >
+              <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
                 Close
               </Button>
               <Button

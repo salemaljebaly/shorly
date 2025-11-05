@@ -105,14 +105,14 @@ export function CreateSubscriptionDialog({
 
   const addMetadata = () => {
     if (metadataKey && metadataValue) {
-      setMetadata(prev => ({ ...prev, [metadataKey]: metadataValue }));
+      setMetadata((prev) => ({ ...prev, [metadataKey]: metadataValue }));
       setMetadataKey('');
       setMetadataValue('');
     }
   };
 
   const removeMetadata = (key: string) => {
-    setMetadata(prev => {
+    setMetadata((prev) => {
       const newMetadata = { ...prev };
       delete newMetadata[key];
       return newMetadata;
@@ -133,7 +133,8 @@ export function CreateSubscriptionDialog({
           <Alert>
             <CreditCard className="h-4 w-4" />
             <AlertDescription>
-              Manual subscriptions are created outside of Stripe and are typically used for custom deals or special arrangements.
+              Manual subscriptions are created outside of Stripe and are typically used for custom
+              deals or special arrangements.
             </AlertDescription>
           </Alert>
 
@@ -151,26 +152,19 @@ export function CreateSubscriptionDialog({
               required
             />
             <p className="text-xs text-muted-foreground">
-              Enter the customer's email address or user ID
+              Enter the customer&apos;s email address or user ID
             </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="plan">Subscription Plan</Label>
-            <Select
-              value={plan}
-              onValueChange={(value: 'STARTER' | 'PRO') => setPlan(value)}
-            >
+            <Select value={plan} onValueChange={(value: 'STARTER' | 'PRO') => setPlan(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a plan" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="STARTER">
-                  Starter - $9.99/month
-                </SelectItem>
-                <SelectItem value="PRO">
-                  Pro - $29.99/month
-                </SelectItem>
+                <SelectItem value="STARTER">Starter - $9.99/month</SelectItem>
+                <SelectItem value="PRO">Pro - $29.99/month</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -224,7 +218,10 @@ export function CreateSubscriptionDialog({
               {Object.keys(metadata).length > 0 && (
                 <div className="space-y-1">
                   {Object.entries(metadata).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between bg-muted p-2 rounded">
+                    <div
+                      key={key}
+                      className="flex items-center justify-between bg-muted p-2 rounded"
+                    >
                       <span className="text-sm">
                         <strong>{key}:</strong> {value}
                       </span>
@@ -242,23 +239,16 @@ export function CreateSubscriptionDialog({
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Add custom metadata for internal tracking (e.g., source: "manual_admin", discount: "special_deal")
+              Add custom metadata for internal tracking (e.g., source: &quot;manual_admin&quot;,
+              discount: &quot;special_deal&quot;)
             </p>
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={loading}
-            >
+            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={loading || !customer}
-            >
+            <Button type="submit" disabled={loading || !customer}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Subscription
             </Button>
