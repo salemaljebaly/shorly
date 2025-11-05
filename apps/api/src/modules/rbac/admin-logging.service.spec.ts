@@ -109,7 +109,13 @@ describe('AdminLoggingService', () => {
 
       mockPrisma.adminLog.create.mockResolvedValue({ id: 'log1' });
 
-      await service.logActionWithContext(adminId, action, request, 'user456', AdminLogTargetType.USER);
+      await service.logActionWithContext(
+        adminId,
+        action,
+        request,
+        'user456',
+        AdminLogTargetType.USER
+      );
 
       expect(prisma.adminLog.create).toHaveBeenCalledWith({
         data: {
@@ -301,6 +307,15 @@ describe('AdminLoggingService', () => {
         })
       );
     });
+
+    it('should handle database errors', async () => {
+      const targetId = 'user456';
+      const targetType = AdminLogTargetType.USER;
+
+      mockPrisma.adminLog.findMany.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.getTargetLogs(targetId, targetType)).rejects.toThrow('Database error');
+    });
   });
 
   describe('getRecentActivity', () => {
@@ -351,6 +366,12 @@ describe('AdminLoggingService', () => {
         })
       );
     });
+
+    it('should handle database errors', async () => {
+      mockPrisma.adminLog.findMany.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.getRecentActivity()).rejects.toThrow('Database error');
+    });
   });
 
   describe('getActionStats', () => {
@@ -397,6 +418,12 @@ describe('AdminLoggingService', () => {
           },
         })
       );
+    });
+
+    it('should handle database errors', async () => {
+      mockPrisma.adminLog.groupBy.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.getActionStats()).rejects.toThrow('Database error');
     });
   });
 
@@ -472,6 +499,67 @@ describe('AdminLoggingService', () => {
       });
     });
 
+    it('should handle startDate filter alone', async () => {
+      const filters = {
+        startDate: new Date('2023-01-01'),
+      };
+
+      mockPrisma.adminLog.findMany.mockResolvedValue([]);
+      mockPrisma.adminLog.count.mockResolvedValue(0);
+
+      await service.getFilteredLogs(filters);
+
+      expect(prisma.adminLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            createdAt: {
+              gte: filters.startDate,
+            },
+          },
+        })
+      );
+    });
+
+    it('should handle endDate filter alone', async () => {
+      const filters = {
+        endDate: new Date('2023-01-31'),
+      };
+
+      mockPrisma.adminLog.findMany.mockResolvedValue([]);
+      mockPrisma.adminLog.count.mockResolvedValue(0);
+
+      await service.getFilteredLogs(filters);
+
+      expect(prisma.adminLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            createdAt: {
+              lte: filters.endDate,
+            },
+          },
+        })
+      );
+    });
+
+    it('should handle targetId filter', async () => {
+      const filters = {
+        targetId: 'target123',
+      };
+
+      mockPrisma.adminLog.findMany.mockResolvedValue([]);
+      mockPrisma.adminLog.count.mockResolvedValue(0);
+
+      await service.getFilteredLogs(filters);
+
+      expect(prisma.adminLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            targetId: 'target123',
+          },
+        })
+      );
+    });
+
     it('should use default values', async () => {
       mockPrisma.adminLog.findMany.mockResolvedValue([]);
       mockPrisma.adminLog.count.mockResolvedValue(0);
@@ -494,6 +582,13 @@ describe('AdminLoggingService', () => {
           },
         },
       });
+    });
+
+    it('should handle database errors', async () => {
+      mockPrisma.adminLog.findMany.mockRejectedValue(new Error('Database error'));
+      mockPrisma.adminLog.count.mockResolvedValue(0);
+
+      await expect(service.getFilteredLogs()).rejects.toThrow('Database error');
     });
   });
 });
